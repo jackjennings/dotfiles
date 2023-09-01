@@ -1,0 +1,23 @@
+[credential "https://github.com"]
+	helper = !/opt/homebrew/bin/gh auth git-credential
+
+[credential "https://gist.github.com"]
+	helper = !/opt/homebrew/bin/gh auth git-credential
+
+[user]
+	email = {{ .email }}
+	name = Jack Jennings
+
+[init]
+	defaultBranch = main
+
+[pull]
+	ff = only
+
+[push]
+	default = current
+
+[alias]
+	remain = !git fetch origin main && git rebase origin/main
+	start = "!f() { git checkout -b "$(whoami)"; }; f"
+
