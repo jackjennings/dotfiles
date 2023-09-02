@@ -12,6 +12,4 @@ fi
   --git-protocol ssh \
   --hostname github.com
 
-/opt/homebrew/bin/gh auth setup-git
-
 /opt/homebrew/bin/chezmoi init --apply https://github.com/$GITHUB_USERNAME/dotfiles.git
