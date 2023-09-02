@@ -1,0 +1,6 @@
+[".hammerspoon/Spoons/ShiftIt.spoon"]
+    type = "archive"
+    url = "https://github.com/peterklijn/hammerspoon-shiftit/raw/master/Spoons/ShiftIt.spoon.zip"
+    exact = true
+    stripComponents = 1
+
