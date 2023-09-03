@@ -18,6 +18,6 @@
 	default = current
 
 [alias]
-	remain = !git fetch origin main && git rebase origin/main
+	remain = "!git fetch origin main && git rebase origin/main"
 	start = "!f() { git checkout -b "$(whoami)/${1}"; }; f"
 	clone-org = "!f() { gh repo list ${1} --no-archived --json nameWithOwner,pushedAt --jq 'sort_by(.pushedAt) | reverse[:50] | .[].nameWithOwner' -L 5000 | xargs -L1 -I'{}' gh repo clone '{}' }; f"
