@@ -1,5 +1,7 @@
 #!/bin/sh
 
+defaults write "Apple Global Domain" AppleInterfaceStyle Dark
+
 # Dock
 
 ## Hide dock by default
