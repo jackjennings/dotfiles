@@ -12,4 +12,4 @@ fi
   --git-protocol ssh \
   --hostname github.com
 
-/opt/homebrew/bin/chezmoi init --apply https://github.com/$GITHUB_USERNAME/dotfiles.git
+/opt/homebrew/bin/chezmoi init --apply https://github.com/jackjennings/dotfiles.git
