@@ -1,8 +1,11 @@
 tap "1password/tap"
+tap "oven-sh/bun"
 
 brew "openssl@3"
 brew "asdf"
+brew "bun"
 brew "curl"
+brew "devcontainer"
 brew "vim"
 brew "git"
 brew "gnupg"
