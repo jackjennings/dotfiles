@@ -15,6 +15,7 @@ brew "yq"
 brew "kubectx"
 brew "kubernetes-cli"
 brew "imagemagick"
+brew "cloc"
 
 cask "bartender"
 cask "docker"
