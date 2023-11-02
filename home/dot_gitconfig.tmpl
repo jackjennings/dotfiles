@@ -18,6 +18,13 @@
 	default = current
 
 [alias]
-	remain = "!git fetch origin main && git rebase origin/main"
-	start = "!f() { git checkout -b "$(whoami)/${1}"; }; f"
+	base-branch = "!f() { git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'; }; f"
 	clone-org = "!f() { gh repo list ${1} --no-archived --json nameWithOwner,pushedAt --jq 'sort_by(.pushedAt) | reverse[:50] | .[].nameWithOwner' -L 5000 | xargs -L1 -I'{}' gh repo clone '{}' }; f"
+	fp = "push --force --no-verify"
+	ir = "!f() { sha=$(git log $(git base-branch)..$(git rev-parse --abbrev-ref HEAD) --format=format:%H | tail -1); git rebase -i "$sha"~; }; f"
+	remain = "!f() { branch=$(git base-branch); git fetch origin $branch && git rebase origin/$branch; }; f"
+	sm = "commit --all --amend --no-verify --no-edit"
+	start = "!f() { git checkout -b "$(whoami)/${1}"; }; f"
+
+[url "git@github.com:"]
+	insteadOf = https://github.com/
