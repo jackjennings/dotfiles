@@ -25,6 +25,7 @@
 	remain = "!f() { branch=$(git base-branch); git fetch origin $branch && git rebase origin/$branch; }; f"
 	sm = "commit --all --amend --no-verify --no-edit"
 	start = "!f() { git checkout -b "$(whoami)/${1}"; }; f"
+	main = "!f() { git checkout main && git pull origin main; }; f"
 
 [url "git@github.com:"]
 	insteadOf = https://github.com/
