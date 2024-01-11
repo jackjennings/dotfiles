@@ -1,1 +1,5 @@
 eval "$(/opt/homebrew/bin/brew shellenv)"
+
+if [ -f .zprofile_ext ]; then
+  source .zprofile_ext
+fi
