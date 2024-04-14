@@ -24,6 +24,7 @@ brew "unisonlang"
 brew "vim"
 brew "woff2"
 brew "yq"
+brew "z"
 brew "zsh"
 
 cask "1password"
