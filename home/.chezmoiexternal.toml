@@ -12,3 +12,6 @@
     exact = true
     stripComponents = 1
     refreshPeriod = "168h"
+["{{ .zsh_custom_directory }}/plugins/zsh-completions"]
+    type = "git-repo"
+    url = "git@github.com:zsh-users/zsh-completions.git"

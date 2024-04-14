@@ -1,0 +1,25 @@
+export ZSH="$HOME/.oh-my-zsh"
+
+DISABLE_LS_COLORS="true"
+ZSH_CUSTOM="{{ .zsh_custom_directory }}"
+
+plugins=(git zsh-completions)
+
+source $ZSH/oh-my-zsh.sh
+
+# User configuration
+
+PROMPT="⎬ "
+EDITOR="vim"
+
+. /opt/homebrew/opt/asdf/libexec/asdf.sh
+. /opt/homebrew/etc/profile.d/z.sh
+
+alias e="$EDITOR ."
+alias c="code ."
+alias zshconfig="$EDITOR ~/.zshrc"
+
+# zsh-completions cannot be installed as a regular ZSH plugin and is downloaded
+# via the chezmoiexterna.toml manifest.
+# See: https://github.com/zsh-users/zsh-completions?tab=readme-ov-file#oh-my-zsh
+fpath+="$ZSH_CUSTOM/plugins/zsh-completions/src"
