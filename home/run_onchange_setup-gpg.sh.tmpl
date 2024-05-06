@@ -1,0 +1,56 @@
+#!/bin/bash
+
+GPG_PUBLIC_KEY_FILEPATH=~/.config/.gpg/public-key
+OP_PASSPHRASE_TITLE="PGP Passphrase"
+OP_PERSONAL_ACCOUNT_ID="EHM4KN6Z35BHJNTV3VFWRLZHUU"
+
+if [[ -f $GPG_PUBLIC_KEY_FILEPATH ]]; then
+  exit 0
+fi
+
+echo "Setting up GnuPG..."
+
+op signin --account "$OP_PERSONAL_ACCOUNT_ID"
+
+OP_PASSPHRASE_ID=$(
+  op item list --format=json \
+  | jq -r ".[] | select(.title == \"$OP_PASSPHRASE_TITLE\") | .id"
+)
+
+if [[ ! $OP_PASSPHRASE_ID ]]; then
+  OP_PASSPHRASE_ID=$(
+    op item template get Password \
+    | op item create --vault personal \
+                     --title "$OP_PASSPHRASE_TITLE" \
+                     --generate-password \
+                     --format=json \
+                     - \
+    | jq -r '.id'
+  )
+fi
+
+PASSPHRASE=$(op item get $OP_PASSPHRASE_ID --fields label=password)
+
+echo $PASSPHRASE
+
+gpg --batch --generate-key <<EOF
+  Key-Type: RSA
+  Key-Length: 4096
+  Subkey-Type: RSA
+  Subkey-Length: 4096
+  Name-Real: {{ .name }}
+  Name-Email: {{ .email }}
+  Passphrase: $PASSPHRASE
+  Expire-Date: 0
+EOF
+
+mkdir -p $(dirname $GPG_PUBLIC_KEY_FILEPATH)
+gpg --output $GPG_PUBLIC_KEY_FILEPATH --armor --export {{ .email }}
+
+if [[ ! $(gh auth status | grep "write:gpg_key") ]]; then
+  # This is required in order to get the "Press ENTER" functionality to work
+  stty sane
+  gh auth refresh -s read:gpg_key,write:gpg_key
+fi
+
+gh gpg-key add "$GPG_PUBLIC_KEY_FILEPATH"
