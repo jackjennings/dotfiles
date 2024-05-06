@@ -2,3 +2,6 @@
 
 # Brewfile hash: {{ include "Brewfile" | sha256sum }}
 brew bundle
+
+# op is quarantined and needs this attribute removed to launch
+xattr -rd com.apple.quarantine $(which op)
