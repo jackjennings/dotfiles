@@ -1,6 +1,5 @@
 tap "1password/tap"
 tap "oven-sh/bun"
-tap "homebrew/cask-fonts"
 
 brew "asdf"
 brew "bash"
