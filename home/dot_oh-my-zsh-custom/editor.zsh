@@ -1,4 +1,4 @@
-EDITOR="vim"
+EDITOR="nvim"
 
 alias e="$EDITOR ."
 alias c="code ."
