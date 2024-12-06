@@ -5,4 +5,4 @@ brew bundle
 brew cleanup
 
 # op is quarantined and needs this attribute removed to launch
-xattr -rd com.apple.quarantine $(which op)
+/usr/bin/xattr -rd com.apple.quarantine $(which op)
