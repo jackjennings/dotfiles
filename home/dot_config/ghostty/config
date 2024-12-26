@@ -1,0 +1,19 @@
+macos-icon = custom-style
+macos-icon-frame = beige
+macos-icon-ghost-color = 0dff00
+macos-icon-screen-color = 00ddaa
+
+cursor-style = block
+shell-integration-features = no-cursor
+
+keybind = global:cmd+shift+t=toggle_quick_terminal
+
+window-padding-x = 10
+window-padding-y = 8
+window-inherit-working-directory = true
+window-colorspace = display-p3
+
+font-family = "GeistMono Nerd Font Mono"
+
+theme = "Sakura"
+

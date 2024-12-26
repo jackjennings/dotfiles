@@ -52,3 +52,4 @@ cask "slack"
 cask "slack-cli"
 cask "spotify"
 cask "visual-studio-code"
+
