@@ -16,6 +16,7 @@ window-colorspace = display-p3
 
 font-family = "GeistMono Nerd Font Mono"
 font-size = 14
+font-feature = -liga
 
 theme = "Sakura"
 
