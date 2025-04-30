@@ -18,7 +18,7 @@ split-divider-color = 7c4079
 
 font-family = "GeistMono Nerd Font Mono"
 font-size = 14
-font-feature = -liga
+font-feature = -calt, -liga, -dlig 
 
 theme = "Sakura"
 
