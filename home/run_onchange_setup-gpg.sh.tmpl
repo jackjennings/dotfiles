@@ -2,7 +2,7 @@
 
 GPG_PUBLIC_KEY_FILEPATH=~/.config/.gpg/public-key
 OP_PASSPHRASE_TITLE="PGP Passphrase"
-OP_PERSONAL_ACCOUNT_ID="EHM4KN6Z35BHJNTV3VFWRLZHUU"
+OP_EMAIL_ADDRESS="j@ckjennin.gs"
 
 if [[ -f $GPG_PUBLIC_KEY_FILEPATH ]]; then
   exit 0
@@ -10,7 +10,7 @@ fi
 
 echo "Setting up GnuPG..."
 
-op signin --account "$OP_PERSONAL_ACCOUNT_ID"
+eval $(op account add --address my.1password.com --email $OP_EMAIL_ADDRESS --signin)
 
 OP_PASSPHRASE_ID=$(
   op item list --format=json \
@@ -29,9 +29,9 @@ if [[ ! $OP_PASSPHRASE_ID ]]; then
   )
 fi
 
-PASSPHRASE=$(op item get $OP_PASSPHRASE_ID --fields label=password)
+PASSPHRASE=$(op item get $OP_PASSPHRASE_ID --fields label=password --reveal)
 
-echo $PASSPHRASE
+echo "Creating GPG key"
 
 gpg --batch --generate-key <<EOF
   Key-Type: RSA
@@ -46,6 +46,8 @@ EOF
 
 mkdir -p $(dirname $GPG_PUBLIC_KEY_FILEPATH)
 gpg --output $GPG_PUBLIC_KEY_FILEPATH --armor --export {{ .email }}
+
+echo "Adding GPG key to Github"
 
 if [[ ! $(gh auth status | grep "write:gpg_key") ]]; then
   # This is required in order to get the "Press ENTER" functionality to work
