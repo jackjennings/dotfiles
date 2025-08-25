@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Brewfile hash: {{ include "Brewfile" | sha256sum }}
-brew bundle --file "{{ .chezmoi.commandDir }}/Brewfile"
+brew bundle --file "{{ .chezmoi.sourceDir }}/Brewfile"
 brew cleanup
 
 # op is quarantined and needs this attribute removed to launch
