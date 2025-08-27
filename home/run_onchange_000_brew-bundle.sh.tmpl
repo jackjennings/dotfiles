@@ -4,5 +4,6 @@
 brew bundle --file "{{ .chezmoi.sourceDir }}/Brewfile"
 brew cleanup
 
-# op is quarantined and needs this attribute removed to launch
+# These CLIs are quarantined and need this attribute removed to launch
 /usr/bin/xattr -rd com.apple.quarantine $(which op)
+/usr/bin/xattr -rd com.apple.quarantine $(which slack)
