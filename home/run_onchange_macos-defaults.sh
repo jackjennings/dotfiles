@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# See all options: https://macos-defaults.com
+
 defaults write "Apple Global Domain" AppleInterfaceStyle Dark
 
 # Dock
@@ -40,4 +42,17 @@ defaults write com.apple.menuextra.clock "DateFormat" -string "\"MMM d HH:mm\""
 
 ## Use plain text by default
 defaults write com.apple.TextEdit "RichText" -bool "false"
+
+# Screenshots
+
+## Disable window shadow
+defaults write com.apple.screencapture "disable-shadow" -bool "true"
+
+## Disable thumbnail
+defaults write com.apple.screencapture "show-thumbnail" -bool "false"
+
+## Set location
+defaults write com.apple.screencapture "location" -string "~/Desktop/Screenshots"
+killall SystemUIServer
+mkdir ~/Desktop/Screenshots
 
