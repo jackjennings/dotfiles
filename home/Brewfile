@@ -34,7 +34,6 @@ brew "zsh"
 
 cask "1password-cli"
 cask "1password"
-cask "bartender"
 cask "caffeine"
 cask "docker"
 cask "docker-desktop"
