@@ -1,0 +1,185 @@
+--- GitHubRepoChooser.spoon
+--- Search and open GitHub repositories via hs.chooser
+
+local obj = {}
+obj.__index = obj
+
+obj.name = "GitHubRepoChooser"
+obj.version = "1.0"
+obj.author = "jack.jennings"
+
+obj.hotkey = nil
+obj.chooser = nil
+obj._repos = {}
+obj._loading = false
+
+local GH_PATH = "/opt/homebrew/bin/gh"
+
+local function getToken(callback)
+  hs.task.new(GH_PATH, function(code, stdout, stderr)
+    if code == 0 then
+      callback(stdout:match("^%s*(.-)%s*$"))
+    else
+      hs.notify.new({title="GitHubRepoChooser", informativeText="Failed to get GitHub token: " .. stderr}):send()
+      callback(nil)
+    end
+  end, {"auth", "token"}):start()
+end
+
+local function fetchRepos(token, callback)
+  local results = {}
+  local page = 1
+  local perPage = 100
+
+  local function fetchPage()
+    local url = string.format(
+      "https://api.github.com/user/repos?per_page=%d&page=%d&sort=updated&affiliation=owner,collaborator,organization_member",
+      perPage, page
+    )
+    hs.http.asyncGet(url, {
+      ["Authorization"] = "Bearer " .. token,
+      ["Accept"] = "application/vnd.github+json",
+      ["X-GitHub-Api-Version"] = "2022-11-28",
+    }, function(status, body, headers)
+      if status ~= 200 then
+        hs.notify.new({title="GitHubRepoChooser", informativeText="GitHub API error: " .. tostring(status)}):send()
+        callback(results)
+        return
+      end
+
+      local data = hs.json.decode(body)
+      if not data or #data == 0 then
+        callback(results)
+        return
+      end
+
+      for _, repo in ipairs(data) do
+        table.insert(results, {
+          text = repo.full_name,
+          subText = repo.description or "",
+          url = repo.html_url,
+          private = repo.private,
+        })
+      end
+
+      if #data == perPage then
+        page = page + 1
+        fetchPage()
+      else
+        callback(results)
+      end
+    end)
+  end
+
+  fetchPage()
+end
+
+local function repoToChoice(repo)
+  local icon
+  if repo.private then
+    icon = hs.image.imageFromName("NSLockLockedTemplate")
+  else
+    icon = hs.image.imageFromName("NSLockUnlockedTemplate")
+  end
+  return {
+    text = repo.text,
+    subText = repo.subText,
+    url = repo.url,
+    image = icon,
+  }
+end
+
+local function repoName(fullName)
+  return fullName:match("/(.+)$") or fullName
+end
+
+local function sortedChoices(repos, query)
+  if not query or query == "" then
+    return hs.fnutils.map(repos, repoToChoice)
+  end
+
+  local q = query:lower()
+  local nameMatches, otherMatches = {}, {}
+
+  for _, repo in ipairs(repos) do
+    local name = repoName(repo.text):lower()
+    local full = repo.text:lower()
+    local desc = repo.subText:lower()
+    if name:find(q, 1, true) then
+      table.insert(nameMatches, repoToChoice(repo))
+    elseif full:find(q, 1, true) or desc:find(q, 1, true) then
+      table.insert(otherMatches, repoToChoice(repo))
+    end
+  end
+
+  local results = {}
+  for _, c in ipairs(nameMatches) do table.insert(results, c) end
+  for _, c in ipairs(otherMatches) do table.insert(results, c) end
+  return results
+end
+
+function obj:_showChooser()
+  if not self.chooser then return end
+
+  if #self._repos > 0 then
+    self.chooser:show()
+    return
+  end
+
+  self.chooser:choices({})
+  self.chooser:placeholderText("Loading repositories…")
+  self.chooser:show()
+
+  if self._loading then return end
+  self._loading = true
+
+  getToken(function(token)
+    if not token then
+      self._loading = false
+      return
+    end
+
+    fetchRepos(token, function(repos)
+      self._loading = false
+      self._repos = repos
+      self.chooser:choices(function(query)
+        return sortedChoices(self._repos, query)
+      end)
+      self.chooser:placeholderText("Search GitHub repos…")
+    end)
+  end)
+end
+
+function obj:init()
+  self.chooser = hs.chooser.new(function(choice)
+    if choice and choice.url then
+      hs.urlevent.openURL(choice.url)
+    end
+  end)
+
+  self.chooser:choices(function(query)
+    return sortedChoices(self._repos, query)
+  end)
+  self.chooser:placeholderText("Search GitHub repos…")
+  self.chooser:width(60)
+  self.chooser:rows(12)
+
+  return self
+end
+
+function obj:bindHotkeys(mapping)
+  local spec = mapping or {show = {{"ctrl", "alt", "cmd"}, "space"}}
+  if spec.show then
+    local mods, key = table.unpack(spec.show)
+    if self.hotkey then self.hotkey:delete() end
+    self.hotkey = hs.hotkey.bind(mods, key, function() self:_showChooser() end)
+  end
+  return self
+end
+
+--- Clears the cached repo list, forcing a refresh on next open
+function obj:refresh()
+  self._repos = {}
+end
+
+return obj
