@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# Get the argument
+arg="${1}"
+
+# Check if it's a URL (contains ://)
+if [[ "$arg" == *"://"* ]]; then
+    # Extract the last segment from the URL
+    ticket_id="${arg##*/}"
+else
+    # Use the argument as-is
+    ticket_id="$arg"
+fi
+
+# Create or switch to the branch
+branch="$(whoami)/${ticket_id}"
+current_branch="$(git symbolic-ref --short HEAD 2>/dev/null)"
+if [[ "${current_branch}" == "${branch}" ]]; then
+    echo "Warning: already on branch '${branch}'" >&2
+elif git show-ref --verify --quiet "refs/heads/${branch}"; then
+    echo "Warning: branch '${branch}' already exists, switching to it" >&2
+    git switch "${branch}"
+else
+    git switch -c "${branch}"
+fi

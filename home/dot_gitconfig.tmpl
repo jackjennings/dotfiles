@@ -24,7 +24,7 @@
 	ir = "!f() { sha=$(git log $(git base-branch)..$(git rev-parse --abbrev-ref HEAD) --format=format:%H | tail -1); git rebase -i "$sha"~; }; f"
 	remain = "!f() { branch=$(git base-branch); git fetch origin $branch && git rebase origin/$branch; }; f"
 	sm = "commit --all --amend --no-verify --no-edit"
-	start = "!f() { git checkout -b "$(whoami)/${1}"; }; f"
+	start = "!~/.config/git/bin/git-start"
 	main = "!f() { git checkout main && git pull origin main; }; f"
 
 [url "git@github.com:"]
