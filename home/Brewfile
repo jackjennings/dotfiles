@@ -1,6 +1,8 @@
 tap "1password/tap"
 tap "oven-sh/bun"
+tap "atlassian/homebrew-acli"
 
+brew "acli"
 brew "asdf"
 brew "bash"
 brew "chezmoi"
