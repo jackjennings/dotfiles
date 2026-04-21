@@ -4,13 +4,11 @@ GPG_PUBLIC_KEY_FILEPATH=~/.config/.gpg/public-key
 OP_PASSPHRASE_TITLE="PGP Passphrase"
 OP_EMAIL_ADDRESS="j@ckjennin.gs"
 
-if [[ -f $GPG_PUBLIC_KEY_FILEPATH ]]; then
-  exit 0
-fi
-
 echo "Setting up GnuPG..."
 
 eval $(op account add --address my.1password.com --email $OP_EMAIL_ADDRESS --signin)
+
+rm -f "$GPG_PUBLIC_KEY_FILEPATH"
 
 OP_PASSPHRASE_ID=$(
   op item list --format=json \
@@ -44,8 +42,15 @@ gpg --batch --generate-key <<EOF
   Expire-Date: 0
 EOF
 
+NEW_KEY_ID=$(gpg --list-secret-keys --with-colons 2>/dev/null \
+  | awk -F: '$1 == "sec" { print $5 }' \
+  | head -1)
+
 mkdir -p $(dirname $GPG_PUBLIC_KEY_FILEPATH)
 gpg --output $GPG_PUBLIC_KEY_FILEPATH --armor --export {{ .email }}
+
+mkdir -p ~/.config/git
+printf '[user]\n\tsigningkey = %s\n' "$NEW_KEY_ID" > ~/.config/git/gpg.gitconfig
 
 # Fix permssions on the resulting files to silence warnings
 chown -R $(whoami) ~/.gnupg/
