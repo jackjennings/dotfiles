@@ -4,6 +4,9 @@
 set -e
 
 gpg-setup-key "{{ .email }}" > /dev/null
+{{ if ne .email .github.email -}}
+gpg-setup-key "{{ .github.email }}" "{{ .github.username }}" > /dev/null
+{{ end -}}
 
 mkdir -p ~/.config/git
 cat > ~/.config/git/gpg.gitconfig <<EOF
@@ -15,4 +18,7 @@ cat > ~/.config/git/gpg.gitconfig <<EOF
 
 [tag]
 	gpgsign = true
+
+[includeIf "gitdir:~/{{ .code_directory }}/{{ .github.username }}/"]
+	path = ~/.config/git/gpg-{{ .github.email }}.gitconfig
 EOF

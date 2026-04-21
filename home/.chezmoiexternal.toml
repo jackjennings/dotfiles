@@ -3,7 +3,7 @@
     url = "https://github.com/peterklijn/hammerspoon-shiftit/raw/master/Spoons/ShiftIt.spoon.zip"
     exact = true
     stripComponents = 1
-["{{ .code_directory }}/jackjennings/invoices"]
+["{{ .code_directory }}/{{ .github.username }}/invoices"]
     type = "git-repo"
     url = "git@github.com:jackjennings/invoices.git"
 [".oh-my-zsh"]

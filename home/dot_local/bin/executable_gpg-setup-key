@@ -2,7 +2,8 @@
 
 set -e
 
-EMAIL="${1:?Usage: gpg-setup-key <email>}"
+EMAIL="${1:?Usage: gpg-setup-key <email> [github-username]}"
+GITHUB_USERNAME="${2:-}"
 GPG_PUBLIC_KEY_FILEPATH=~/.config/.gpg/public-key-$EMAIL
 OP_PASSPHRASE_TITLE="PGP Passphrase"
 OP_EMAIL_ADDRESS="j@ckjennin.gs"
@@ -67,15 +68,25 @@ EOF
   mkdir -p $(dirname $GPG_PUBLIC_KEY_FILEPATH)
   gpg --output $GPG_PUBLIC_KEY_FILEPATH --armor --export "$EMAIL"
 
-  echo "Adding GPG key to Github" >&2
+  echo "Adding GPG key to GitHub" >&2
 
-  if [[ ! $(gh auth status | grep "write:gpg_key") ]]; then
+  CURRENT_GH_USER=$(gh api user --jq .login 2>/dev/null)
+  if [[ -n "$GITHUB_USERNAME" && "$GITHUB_USERNAME" != "$CURRENT_GH_USER" ]]; then
+    gh auth switch --user "$GITHUB_USERNAME"
+    echo "  ... for user $GITHUB_USERNAME"
+  fi
+
+  if [[ ! $(gh auth status --active | grep "write:gpg_key") ]]; then
     # This is required in order to get the "Press ENTER" functionality to work
     stty sane
-    gh auth refresh -s read:gpg_key,write:gpg_key
+    gh auth refresh --hostname github.com --scopes read:gpg_key,write:gpg_key
   fi
 
   gh gpg-key add "$GPG_PUBLIC_KEY_FILEPATH"
+
+  if [[ -n "$GITHUB_USERNAME" && "$GITHUB_USERNAME" != "$CURRENT_GH_USER" ]]; then
+    gh auth switch --user "$CURRENT_GH_USER"
+  fi
 else
   echo "GPG key for $EMAIL already exists, skipping key generation." >&2
 fi
