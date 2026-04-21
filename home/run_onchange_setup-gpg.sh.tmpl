@@ -77,4 +77,13 @@ else
 fi
 
 mkdir -p ~/.config/git
-printf '[user]\n\tsigningkey = %s\n' "$KEY_ID" > ~/.config/git/gpg.gitconfig
+cat > ~/.config/git/gpg.gitconfig <<EOF
+[user]
+	signingkey = $KEY_ID
+
+[commit]
+	gpgsign = true
+
+[tag]
+	gpgsign = true
+EOF
