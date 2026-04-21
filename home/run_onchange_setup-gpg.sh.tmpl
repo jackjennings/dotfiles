@@ -6,13 +6,18 @@ OP_EMAIL_ADDRESS="j@ckjennin.gs"
 
 echo "Setting up GnuPG..."
 
-eval $(op account add --address my.1password.com --email $OP_EMAIL_ADDRESS --signin)
+# Fix permissions on gnupg files to silence warnings
+chown -R $(whoami) ~/.gnupg/
+find ~/.gnupg -type d -exec chmod 700 {} \;
+find ~/.gnupg -type f -exec chmod 600 {} \;
 
 KEY_ID=$(gpg --list-secret-keys --with-colons "{{ .email }}" 2>/dev/null \
   | awk -F: '$1 == "sec" { print $5 }' \
   | head -1)
 
 if [[ -z "$KEY_ID" ]]; then
+  eval $(op account add --address my.1password.com --email $OP_EMAIL_ADDRESS --signin 2>/dev/null)
+
   OP_PASSPHRASE_ID=$(
     op item list --format=json \
     | jq -r ".[] | select(.title == \"$OP_PASSPHRASE_TITLE\") | .id"
@@ -49,6 +54,11 @@ EOF
     | awk -F: '$1 == "sec" { print $5 }' \
     | head -1)
 
+  if [[ -z "$KEY_ID" ]]; then
+    echo "Error: GPG key generation failed." >&2
+    exit 1
+  fi
+
   rm -f "$GPG_PUBLIC_KEY_FILEPATH"
   mkdir -p $(dirname $GPG_PUBLIC_KEY_FILEPATH)
   gpg --output $GPG_PUBLIC_KEY_FILEPATH --armor --export {{ .email }}
@@ -65,11 +75,6 @@ EOF
 else
   echo "GPG key for {{ .email }} already exists, skipping key generation."
 fi
-
-# Fix permissions on gnupg files to silence warnings
-chown -R $(whoami) ~/.gnupg/
-chmod 600 ~/.gnupg/*
-chmod 700 ~/.gnupg
 
 mkdir -p ~/.config/git
 printf '[user]\n\tsigningkey = %s\n' "$KEY_ID" > ~/.config/git/gpg.gitconfig
