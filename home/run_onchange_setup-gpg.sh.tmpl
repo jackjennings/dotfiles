@@ -53,11 +53,6 @@ EOF
   mkdir -p $(dirname $GPG_PUBLIC_KEY_FILEPATH)
   gpg --output $GPG_PUBLIC_KEY_FILEPATH --armor --export {{ .email }}
 
-  # Fix permssions on the resulting files to silence warnings
-  chown -R $(whoami) ~/.gnupg/
-  chmod 600 ~/.gnupg/*
-  chmod 700 ~/.gnupg
-
   echo "Adding GPG key to Github"
 
   if [[ ! $(gh auth status | grep "write:gpg_key") ]]; then
@@ -70,6 +65,11 @@ EOF
 else
   echo "GPG key for {{ .email }} already exists, skipping key generation."
 fi
+
+# Fix permissions on gnupg files to silence warnings
+chown -R $(whoami) ~/.gnupg/
+chmod 600 ~/.gnupg/*
+chmod 700 ~/.gnupg
 
 mkdir -p ~/.config/git
 printf '[user]\n\tsigningkey = %s\n' "$KEY_ID" > ~/.config/git/gpg.gitconfig
