@@ -8,61 +8,68 @@ echo "Setting up GnuPG..."
 
 eval $(op account add --address my.1password.com --email $OP_EMAIL_ADDRESS --signin)
 
-rm -f "$GPG_PUBLIC_KEY_FILEPATH"
-
-OP_PASSPHRASE_ID=$(
-  op item list --format=json \
-  | jq -r ".[] | select(.title == \"$OP_PASSPHRASE_TITLE\") | .id"
-)
-
-if [[ ! $OP_PASSPHRASE_ID ]]; then
-  OP_PASSPHRASE_ID=$(
-    op item template get Password \
-    | op item create --vault personal \
-                     --title "$OP_PASSPHRASE_TITLE" \
-                     --generate-password \
-                     --format=json \
-                     - \
-    | jq -r '.id'
-  )
-fi
-
-PASSPHRASE=$(op item get $OP_PASSPHRASE_ID --fields label=password --reveal)
-
-echo "Creating GPG key"
-
-gpg --batch --generate-key <<EOF
-  Key-Type: RSA
-  Key-Length: 4096
-  Subkey-Type: RSA
-  Subkey-Length: 4096
-  Name-Real: {{ .name }}
-  Name-Email: {{ .email }}
-  Passphrase: $PASSPHRASE
-  Expire-Date: 0
-EOF
-
-NEW_KEY_ID=$(gpg --list-secret-keys --with-colons 2>/dev/null \
+KEY_ID=$(gpg --list-secret-keys --with-colons "{{ .email }}" 2>/dev/null \
   | awk -F: '$1 == "sec" { print $5 }' \
   | head -1)
 
-mkdir -p $(dirname $GPG_PUBLIC_KEY_FILEPATH)
-gpg --output $GPG_PUBLIC_KEY_FILEPATH --armor --export {{ .email }}
+if [[ -z "$KEY_ID" ]]; then
+  OP_PASSPHRASE_ID=$(
+    op item list --format=json \
+    | jq -r ".[] | select(.title == \"$OP_PASSPHRASE_TITLE\") | .id"
+  )
 
-mkdir -p ~/.config/git
-printf '[user]\n\tsigningkey = %s\n' "$NEW_KEY_ID" > ~/.config/git/gpg.gitconfig
+  if [[ ! $OP_PASSPHRASE_ID ]]; then
+    OP_PASSPHRASE_ID=$(
+      op item template get Password \
+      | op item create --vault personal \
+                       --title "$OP_PASSPHRASE_TITLE" \
+                       --generate-password \
+                       --format=json \
+                       - \
+      | jq -r '.id'
+    )
+  fi
 
-# Fix permssions on the resulting files to silence warnings
-chown -R $(whoami) ~/.gnupg/
-chmod 600 ~/.gnupg/*
-chmod 700 ~/.gnupg
+  PASSPHRASE=$(op item get $OP_PASSPHRASE_ID --fields label=password --reveal)
 
-echo "Adding GPG key to Github"
+  echo "Creating GPG key"
 
-if [[ ! $(gh auth status | grep "write:gpg_key") ]]; then
-  # This is required in order to get the "Press ENTER" functionality to work
-  stty sane
-  gh auth refresh -s read:gpg_key,write:gpg_key
+  gpg --batch --generate-key <<EOF
+    Key-Type: RSA
+    Key-Length: 4096
+    Subkey-Type: RSA
+    Subkey-Length: 4096
+    Name-Real: {{ .name }}
+    Name-Email: {{ .email }}
+    Passphrase: $PASSPHRASE
+    Expire-Date: 0
+EOF
+
+  KEY_ID=$(gpg --list-secret-keys --with-colons "{{ .email }}" 2>/dev/null \
+    | awk -F: '$1 == "sec" { print $5 }' \
+    | head -1)
+
+  rm -f "$GPG_PUBLIC_KEY_FILEPATH"
+  mkdir -p $(dirname $GPG_PUBLIC_KEY_FILEPATH)
+  gpg --output $GPG_PUBLIC_KEY_FILEPATH --armor --export {{ .email }}
+
+  # Fix permssions on the resulting files to silence warnings
+  chown -R $(whoami) ~/.gnupg/
+  chmod 600 ~/.gnupg/*
+  chmod 700 ~/.gnupg
+
+  echo "Adding GPG key to Github"
+
+  if [[ ! $(gh auth status | grep "write:gpg_key") ]]; then
+    # This is required in order to get the "Press ENTER" functionality to work
+    stty sane
+    gh auth refresh -s read:gpg_key,write:gpg_key
+  fi
+
+  gh gpg-key add "$GPG_PUBLIC_KEY_FILEPATH"
+else
+  echo "GPG key for {{ .email }} already exists, skipping key generation."
 fi
 
-gh gpg-key add "$GPG_PUBLIC_KEY_FILEPATH"
+mkdir -p ~/.config/git
+printf '[user]\n\tsigningkey = %s\n' "$KEY_ID" > ~/.config/git/gpg.gitconfig
