@@ -3,12 +3,12 @@
 
 set -e
 
-KEY_ID=$(gpg-setup-key "{{ .email }}")
+gpg-setup-key "{{ .email }}" > /dev/null
 
 mkdir -p ~/.config/git
 cat > ~/.config/git/gpg.gitconfig <<EOF
-[user]
-	signingkey = $KEY_ID
+[include]
+	path = ~/.config/git/gpg-{{ .email }}.gitconfig
 
 [commit]
 	gpgsign = true

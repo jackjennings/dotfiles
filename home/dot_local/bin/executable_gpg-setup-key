@@ -80,4 +80,10 @@ else
   echo "GPG key for $EMAIL already exists, skipping key generation." >&2
 fi
 
+mkdir -p ~/.config/git
+cat > ~/.config/git/gpg-$EMAIL.gitconfig <<EOF
+[user]
+	signingkey = $KEY_ID
+EOF
+
 echo "$KEY_ID"
