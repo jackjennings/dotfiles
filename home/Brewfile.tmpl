@@ -3,7 +3,9 @@ tap "oven-sh/bun"
 tap "atlassian/homebrew-acli"
 
 brew "acli"
+{{- if .features.asdf }}
 brew "asdf"
+{{- end }}
 brew "bash"
 brew "chezmoi"
 brew "cloc"

@@ -1,7 +1,8 @@
 #!/bin/sh
 
-# Brewfile hash: {{ include "Brewfile" | sha256sum }}
-brew bundle --file "{{ .chezmoi.sourceDir }}/Brewfile"
+# Brewfile hash: {{ include "Brewfile.tmpl" | sha256sum }}
+# Features hash: {{ .features | toJson | sha256sum }}
+brew bundle --file "{{ .chezmoi.homeDir }}/Brewfile"
 brew cleanup
 
 # These CLIs are quarantined and need this attribute removed to launch
