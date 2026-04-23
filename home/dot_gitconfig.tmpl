@@ -52,11 +52,14 @@
 	enabled = true
 	autoupdate = true
 
+{{ if ne .email .github.email -}}
 [includeIf "gitdir:~/{{ .code_directory }}/{{ .github.username }}/"]
 	path = ~/.config/git/jackjennings.gitconfig
 
 [includeIf "gitdir:~/.local/share/chezmoi/"]
 	path = ~/.config/git/jackjennings.gitconfig
+
+{{ end -}}
 
 ; The GPG setup script in dotfiles writes this configuration file
 [include]
