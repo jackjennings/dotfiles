@@ -1,7 +1,5 @@
+# Set Homebrew environment variables (PATH, MANPATH, HOMEBREW_PREFIX, etc.).
+# Kept in .zprofile rather than .zshrc so these are available in non-interactive
+# login shells (launchd agents, SSH sessions, zsh -l scripts) — not just
+# interactive terminals.
 eval "$(/opt/homebrew/bin/brew shellenv)"
-
-# The `.zprofile_ext` file is not checked in to version control
-# in order to permit customization that is not tracked.
-if [ -f ~/.zprofile_ext ]; then
-  source ~/.zprofile_ext
-fi
