@@ -6,7 +6,7 @@ EMAIL="${1:?Usage: gpg-setup-key <email> [github-username]}"
 GITHUB_USERNAME="${2:-}"
 GPG_PUBLIC_KEY_FILEPATH=~/.config/.gpg/public-key-$EMAIL
 OP_PASSPHRASE_TITLE="PGP Passphrase"
-OP_ACCOUNT_ID="EHM4KN6Z35BHJNTV3VFWRLZHUU"
+OP_ACCOUNT_ID="{{ .onepassword.account_id }}"
 
 echo "Setting up GnuPG for $EMAIL..." >&2
 
