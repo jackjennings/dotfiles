@@ -19,13 +19,21 @@
     "pr": ""
   },
   "enabledPlugins": {
-    "superpowers@superpowers-marketplace": true
+    "superpowers@superpowers-marketplace": true,
+    "agent-browser@agent-browser-marketplace": true
   },
   "extraKnownMarketplaces": {
     "superpowers-marketplace": {
       "source": {
         "source": "github",
         "repo": "obra/superpowers-marketplace"
+      }
+    },
+    "agent-browser-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "vercel-labs/agent-browser",
+        "path": ".claude-plugin/marketplace.json"
       }
     }
   }

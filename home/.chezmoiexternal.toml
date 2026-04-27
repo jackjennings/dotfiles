@@ -1,3 +1,8 @@
+[".claude/skills/agent-browser/SKILL.md"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/vercel-labs/agent-browser/main/skills/agent-browser/SKILL.md"
+    refreshPeriod = "168h"
+
 [".hammerspoon/Spoons/ShiftIt.spoon"]
     type = "archive"
     url = "https://github.com/peterklijn/hammerspoon-shiftit/raw/master/Spoons/ShiftIt.spoon.zip"
