@@ -15,15 +15,37 @@ obj._loading = false
 
 local GH_PATH = "/opt/homebrew/bin/gh"
 
-local function getToken(callback)
+local function getAccounts(callback)
+  hs.task.new(GH_PATH, function(code, stdout, stderr)
+    if code ~= 0 then
+      hs.notify.new({title="GitHubRepoChooser", informativeText="Failed to list accounts: " .. stderr}):send()
+      callback({})
+      return
+    end
+    local data = hs.json.decode(stdout)
+    local accounts = {}
+    if data and data.hosts then
+      for host, entries in pairs(data.hosts) do
+        for _, entry in ipairs(entries) do
+          if entry.state == "success" then
+            table.insert(accounts, {host = host, login = entry.login})
+          end
+        end
+      end
+    end
+    callback(accounts)
+  end, {"auth", "status", "--json", "hosts"}):start()
+end
+
+local function getToken(login, callback)
   hs.task.new(GH_PATH, function(code, stdout, stderr)
     if code == 0 then
       callback(stdout:match("^%s*(.-)%s*$"))
     else
-      hs.notify.new({title="GitHubRepoChooser", informativeText="Failed to get GitHub token: " .. stderr}):send()
+      hs.notify.new({title="GitHubRepoChooser", informativeText="Failed to get token for " .. login .. ": " .. stderr}):send()
       callback(nil)
     end
-  end, {"auth", "token"}):start()
+  end, {"auth", "token", "--user", login}):start()
 end
 
 local function fetchRepos(token, callback)
@@ -40,7 +62,7 @@ local function fetchRepos(token, callback)
       ["Authorization"] = "Bearer " .. token,
       ["Accept"] = "application/vnd.github+json",
       ["X-GitHub-Api-Version"] = "2022-11-28",
-    }, function(status, body, headers)
+    }, function(status, body, _headers)
       if status ~= 200 then
         hs.notify.new({title="GitHubRepoChooser", informativeText="GitHub API error: " .. tostring(status)}):send()
         callback(results)
@@ -72,6 +94,38 @@ local function fetchRepos(token, callback)
   end
 
   fetchPage()
+end
+
+local function fetchAllRepos(accounts, callback)
+  local allResults = {}
+  local seen = {}
+  local pending = #accounts
+
+  local function onReposFetched(repos)
+    for _, repo in ipairs(repos) do
+      if not seen[repo.url] then
+        seen[repo.url] = true
+        table.insert(allResults, repo)
+      end
+    end
+    pending = pending - 1
+    if pending == 0 then
+      callback(allResults)
+    end
+  end
+
+  for _, account in ipairs(accounts) do
+    getToken(account.login, function(token)
+      if token then
+        fetchRepos(token, onReposFetched)
+      else
+        pending = pending - 1
+        if pending == 0 then
+          callback(allResults)
+        end
+      end
+    end)
+  end
 end
 
 local function repoToChoice(repo)
@@ -133,13 +187,14 @@ function obj:_showChooser()
   if self._loading then return end
   self._loading = true
 
-  getToken(function(token)
-    if not token then
+  getAccounts(function(accounts)
+    if #accounts == 0 then
       self._loading = false
+      hs.notify.new({title="GitHubRepoChooser", informativeText="No authenticated GitHub accounts found"}):send()
       return
     end
 
-    fetchRepos(token, function(repos)
+    fetchAllRepos(accounts, function(repos)
       self._loading = false
       self._repos = repos
       self.chooser:choices(function(query)
