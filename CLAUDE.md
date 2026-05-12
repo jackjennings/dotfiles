@@ -31,7 +31,7 @@ The chezmoi source root is `home/` (set by `.chezmoiroot`). Everything inside ma
 
 **Shell config layering:**
 - `dot_zprofile` — login shell only (Homebrew env)
-- `dot_zshrc.tmpl` — interactive shell bootstrap (oh-my-zsh setup, sources `.zshrc.local`)
+- `dot_zshrc.tmpl` — interactive shell bootstrap (oh-my-zsh setup, sources `.zshrc.local`); keep minimal, delegate additional configuration to oh-my-zsh-custom
 - `dot_oh-my-zsh-custom/*.zsh` — auto-sourced by oh-my-zsh; this is where tool integrations live (one file per tool)
 
 **`run_onchange_` scripts** re-execute whenever their rendered content changes. Scripts that should re-run when a config file changes embed a sha256 hash of that file in a comment:
