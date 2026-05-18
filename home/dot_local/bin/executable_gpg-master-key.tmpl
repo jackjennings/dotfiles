@@ -57,7 +57,7 @@ gpg --batch --pinentry-mode loopback --passphrase "$MASTER_PASS" \
 echo "Generating revocation certificate..." >&2
 
 printf "y\n0\n\ny\n" \
-  | gpg --batch --yes --pinentry-mode loopback --passphrase "$MASTER_PASS" \
+  | gpg --yes --pinentry-mode loopback --passphrase "$MASTER_PASS" \
         --command-fd 0 --gen-revoke "$MASTER_FP" \
   | op document create - --vault personal --title "GPG Master Key Revocation" \
       --account "$OP_ACCOUNT"
