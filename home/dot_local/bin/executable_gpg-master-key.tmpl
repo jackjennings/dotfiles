@@ -18,7 +18,7 @@ op item create --vault personal \
     --title "GPG Master Key Passphrase" \
     --category Password \
     --generate-password \
-    --account "$OP_ACCOUNT"
+    --account "$OP_ACCOUNT" >/dev/null
 
 MASTER_PASS=$(op read "op://Personal/GPG Master Key Passphrase/password" \
     --account "$OP_ACCOUNT")
@@ -29,7 +29,7 @@ export GNUPGHOME
 
 echo "Generating master key (cert-only)..." >&2
 
-gpg --batch --generate-key <<EOF
+gpg --batch --generate-key 2>/dev/null <<EOF
 Key-Type: RSA
 Key-Length: 4096
 Key-Usage: cert
@@ -50,17 +50,17 @@ fi
 echo "Storing master key in 1Password..." >&2
 
 gpg --batch --pinentry-mode loopback --passphrase "$MASTER_PASS" \
-    --armor --export-secret-keys "$MASTER_FP" \
+    --armor --export-secret-keys "$MASTER_FP" 2>/dev/null \
   | op document create - --vault personal --title "GPG Master Key" \
-      --account "$OP_ACCOUNT"
+      --account "$OP_ACCOUNT" >/dev/null
 
 echo "Generating revocation certificate..." >&2
 
 printf "y\n0\n\ny\n" \
   | gpg --yes --pinentry-mode loopback --passphrase "$MASTER_PASS" \
-        --command-fd 0 --gen-revoke "$MASTER_FP" \
+        --command-fd 0 --gen-revoke "$MASTER_FP" 2>/dev/null \
   | op document create - --vault personal --title "GPG Master Key Revocation" \
-      --account "$OP_ACCOUNT"
+      --account "$OP_ACCOUNT" >/dev/null
 
 echo "Done. Master key fingerprint: $MASTER_FP" >&2
 echo "Run gpg-setup-key to provision this machine." >&2
