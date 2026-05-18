@@ -2,7 +2,7 @@
 
 set -e
 
-EMAIL="${1:?Usage: gpg-master-key <email>}"
+EMAIL="{{ .gpg.email }}"
 OP_ACCOUNT="{{ .onepassword.account_id }}"
 
 echo "Setting up GPG master key for $EMAIL..." >&2

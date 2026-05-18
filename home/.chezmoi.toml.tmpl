@@ -1,4 +1,5 @@
 {{- $email := promptStringOnce . "email" "email" -}}
+{{- $gpgEmail := promptStringOnce . "gpg.email" "gpg email" "j@ckjennin.gs" -}}
 [data]
     name = "Jack Jennings"
     email = "{{ $email }}"
@@ -11,6 +12,9 @@
 [data.github]
     username = "jackjennings"
     email = "j@ckjennin.gs"
+
+[data.gpg]
+    email = "{{ $gpgEmail }}"
 
 [data.onepassword]
     account_id = "EHM4KN6Z35BHJNTV3VFWRLZHUU"
