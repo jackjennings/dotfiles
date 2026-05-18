@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -e
+
+OP_ACCOUNT="{{ .onepassword.account_id }}"
+TARGET_UUID="${1:-$(system_profiler SPHardwareDataType | awk '/Hardware UUID/ { print $3 }')}"
+
+echo "Revoking GPG subkey for device $TARGET_UUID..." >&2
+
+MASTER_PASS=$(op read "op://Personal/GPG Master Key Passphrase/password" \
+    --account "$OP_ACCOUNT")
+
+GNUPGHOME=$(mktemp -d)
+trap "rm -rf '$GNUPGHOME'" EXIT
+export GNUPGHOME
+
+op document get "GPG Master Key" --account "$OP_ACCOUNT" \
+  | gpg --batch --pinentry-mode loopback --passphrase "$MASTER_PASS" --import
+
+MASTER_FP=$(gpg --list-secret-keys --with-colons \
+  | awk -F: '$1 == "sec" { print $5 }' | head -1)
+
+echo "" >&2
+echo "Select the subkey to revoke with: key N → revkey → save" >&2
+echo "" >&2
+
+gpg --pinentry-mode loopback --edit-key "$MASTER_FP"
+
+echo "Updating master key document in 1Password..." >&2
+
+gpg --batch --pinentry-mode loopback --passphrase "$MASTER_PASS" \
+    --armor --export-secret-keys "$MASTER_FP" \
+  | op document edit "GPG Master Key" - --account "$OP_ACCOUNT"
+
+echo "Pushing updated public key to GitHub..." >&2
+gpg --armor --export "$MASTER_FP" | gh gpg-key add -
+
+echo "Deleting subkey passphrase from 1Password..." >&2
+op item delete "GPG Subkey $TARGET_UUID" --account "$OP_ACCOUNT"
+
+echo "Done. Subkey for $TARGET_UUID revoked." >&2

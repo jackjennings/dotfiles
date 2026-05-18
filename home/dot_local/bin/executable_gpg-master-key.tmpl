@@ -1,0 +1,66 @@
+#!/bin/bash
+
+set -e
+
+EMAIL="${1:?Usage: gpg-master-key <email>}"
+OP_ACCOUNT="{{ .onepassword.account_id }}"
+
+echo "Setting up GPG master key for $EMAIL..." >&2
+
+if op document get "GPG Master Key" --account "$OP_ACCOUNT" &>/dev/null; then
+  echo "Error: GPG Master Key already exists in 1Password. Aborting." >&2
+  exit 1
+fi
+
+NAME=$(git config --global --includes user.name)
+
+op item create --vault personal \
+    --title "GPG Master Key Passphrase" \
+    --category Password \
+    --generate-password \
+    --account "$OP_ACCOUNT"
+
+MASTER_PASS=$(op read "op://Personal/GPG Master Key Passphrase/password" \
+    --account "$OP_ACCOUNT")
+
+GNUPGHOME=$(mktemp -d)
+trap "rm -rf '$GNUPGHOME'" EXIT
+export GNUPGHOME
+
+echo "Generating master key (cert-only)..." >&2
+
+gpg --batch --generate-key <<EOF
+Key-Type: RSA
+Key-Length: 4096
+Key-Usage: cert
+Name-Real: $NAME
+Name-Email: $EMAIL
+Passphrase: $MASTER_PASS
+Expire-Date: 0
+EOF
+
+MASTER_FP=$(gpg --list-secret-keys --with-colons "$EMAIL" \
+  | awk -F: '$1 == "sec" { print $5 }' | head -1)
+
+if [[ -z "$MASTER_FP" ]]; then
+  echo "Error: Key generation failed." >&2
+  exit 1
+fi
+
+echo "Storing master key in 1Password..." >&2
+
+gpg --batch --pinentry-mode loopback --passphrase "$MASTER_PASS" \
+    --armor --export-secret-keys "$MASTER_FP" \
+  | op document create - --vault personal --title "GPG Master Key" \
+      --account "$OP_ACCOUNT"
+
+echo "Generating revocation certificate..." >&2
+
+printf "y\n0\n\ny\n" \
+  | gpg --batch --yes --pinentry-mode loopback --passphrase "$MASTER_PASS" \
+        --command-fd 0 --gen-revoke "$MASTER_FP" \
+  | op document create - --vault personal --title "GPG Master Key Revocation" \
+      --account "$OP_ACCOUNT"
+
+echo "Done. Master key fingerprint: $MASTER_FP" >&2
+echo "Run gpg-setup-key to provision this machine." >&2

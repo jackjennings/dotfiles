@@ -5,8 +5,8 @@ set -e
 EMAIL="${1:?Usage: gpg-setup-key <email> [github-username]}"
 GITHUB_USERNAME="${2:-}"
 GPG_PUBLIC_KEY_FILEPATH=~/.config/.gpg/public-key-$EMAIL
-OP_PASSPHRASE_TITLE="PGP Passphrase"
 OP_ACCOUNT_ID="{{ .onepassword.account_id }}"
+DEVICE_UUID=$(system_profiler SPHardwareDataType | awk '/Hardware UUID/ { print $3 }')
 
 echo "Setting up GnuPG for $EMAIL..." >&2
 
@@ -22,45 +22,61 @@ KEY_ID=$(gpg --list-secret-keys --with-colons "$EMAIL" 2>/dev/null \
 if [[ -z "$KEY_ID" ]]; then
   eval $(op signin --account $OP_ACCOUNT_ID 2>/dev/null)
 
-  OP_PASSPHRASE_ID=$(
-    op item list --format=json \
-    | jq -r ".[] | select(.title == \"$OP_PASSPHRASE_TITLE\") | .id"
-  )
-
-  if [[ ! $OP_PASSPHRASE_ID ]]; then
-    OP_PASSPHRASE_ID=$(
-      op item template get Password \
-      | op item create --vault personal \
-                       --title "$OP_PASSPHRASE_TITLE" \
-                       --generate-password \
-                       --format=json \
-                       - \
-      | jq -r '.id'
-    )
+  if ! op document get "GPG Master Key" --account "$OP_ACCOUNT_ID" &>/dev/null; then
+    echo "Error: GPG Master Key not found in 1Password." >&2
+    echo "Run gpg-master-key first to set up the master key." >&2
+    exit 1
   fi
 
-  PASSPHRASE=$(op item get $OP_PASSPHRASE_ID --fields label=password --reveal)
-  NAME=$(git config --global --includes user.name)
+  MASTER_PASS=$(op read "op://Personal/GPG Master Key Passphrase/password" \
+      --account "$OP_ACCOUNT_ID")
 
-  echo "Creating GPG key" >&2
+  echo "Creating GPG subkey for device $DEVICE_UUID..." >&2
 
-  gpg --batch --generate-key <<EOF
-Key-Type: RSA
-Key-Length: 4096
-Subkey-Type: RSA
-Subkey-Length: 4096
-Name-Real: $NAME
-Name-Email: $EMAIL
-Passphrase: $PASSPHRASE
-Expire-Date: 0
-EOF
+  GNUPGHOME_TEMP=$(mktemp -d)
+  trap "rm -rf '$GNUPGHOME_TEMP'" EXIT
+
+  op document get "GPG Master Key" --account "$OP_ACCOUNT_ID" \
+    | GNUPGHOME="$GNUPGHOME_TEMP" gpg --batch --pinentry-mode loopback \
+        --passphrase "$MASTER_PASS" --import
+
+  MASTER_FP=$(GNUPGHOME="$GNUPGHOME_TEMP" gpg --list-secret-keys --with-colons \
+    | awk -F: '$1 == "sec" { print $5 }' | head -1)
+
+  GNUPGHOME="$GNUPGHOME_TEMP" gpg --batch --pinentry-mode loopback \
+      --passphrase "$MASTER_PASS" \
+      --quick-add-key "$MASTER_FP" rsa4096 sign 0
+
+  op item create --vault personal \
+      --title "GPG Subkey $DEVICE_UUID" \
+      --category Password \
+      --generate-password \
+      --account "$OP_ACCOUNT_ID"
+
+  DEVICE_PASS=$(op read "op://Personal/GPG Subkey $DEVICE_UUID/password" \
+      --account "$OP_ACCOUNT_ID")
+
+  GNUPGHOME="$GNUPGHOME_TEMP" gpg --batch --pinentry-mode loopback \
+      --passphrase "$MASTER_PASS" \
+      --new-passphrase "$DEVICE_PASS" \
+      --quick-change-passphrase "$MASTER_FP"
+
+  SUBKEY_EXPORT=$(GNUPGHOME="$GNUPGHOME_TEMP" gpg --batch --pinentry-mode loopback \
+      --passphrase "$DEVICE_PASS" \
+      --export-secret-subkeys --armor "$MASTER_FP")
+
+  rm -rf "$GNUPGHOME_TEMP"
+  trap - EXIT
+
+  echo "$SUBKEY_EXPORT" | gpg --batch --pinentry-mode loopback \
+      --passphrase "$DEVICE_PASS" --import
 
   KEY_ID=$(gpg --list-secret-keys --with-colons "$EMAIL" 2>/dev/null \
     | awk -F: '$1 == "sec" { print $5 }' \
     | head -1)
 
   if [[ -z "$KEY_ID" ]]; then
-    echo "Error: GPG key generation failed." >&2
+    echo "Error: GPG subkey setup failed." >&2
     exit 1
   fi
 
