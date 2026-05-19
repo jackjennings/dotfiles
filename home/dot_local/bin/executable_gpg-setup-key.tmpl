@@ -91,6 +91,47 @@ else
   echo "GPG key already exists, skipping." >&2
 fi
 
+# --- Ensure email is a UID on the master key ---
+
+if ! gpg --list-keys --with-colons "$MASTER_KEY_FINGERPRINT" 2>/dev/null \
+    | awk -F: '$1 == "uid" { print $10 }' | grep -qi "<$EMAIL>"; then
+
+  echo "Adding $EMAIL as a UID to the master key..." >&2
+
+  if [[ -z "${MASTER_KEY_PASSPHRASE:-}" ]]; then
+    eval $(op signin --account $OP_ACCOUNT 2>/dev/null)
+    MASTER_KEY_PASSPHRASE=$(op read "op://Personal/GPG Master Key Passphrase/password" \
+        --account "$OP_ACCOUNT")
+  fi
+
+  NAME=$(git config --global --includes user.name)
+
+  TEMP_GNUPGHOME=$(mktemp -d)
+  trap "rm -rf '$TEMP_GNUPGHOME'" EXIT
+
+  op document get "GPG Master Key" --account "$OP_ACCOUNT" \
+    | GNUPGHOME="$TEMP_GNUPGHOME" gpg --batch --pinentry-mode loopback \
+        --passphrase "$MASTER_KEY_PASSPHRASE" --import 2>/dev/null
+
+  GNUPGHOME="$TEMP_GNUPGHOME" gpg --batch --pinentry-mode loopback \
+      --passphrase "$MASTER_KEY_PASSPHRASE" \
+      --quick-add-uid "$MASTER_KEY_FINGERPRINT" "$NAME <$EMAIL>" 2>/dev/null
+
+  # Update master key in 1Password with the new UID
+  GNUPGHOME="$TEMP_GNUPGHOME" gpg --batch --pinentry-mode loopback \
+      --passphrase "$MASTER_KEY_PASSPHRASE" \
+      --armor --export-secret-keys "$MASTER_KEY_FINGERPRINT" 2>/dev/null \
+    | op document edit "GPG Master Key" - --account "$OP_ACCOUNT"
+
+  # Refresh public key in real keyring and invalidate cached public key file
+  GNUPGHOME="$TEMP_GNUPGHOME" gpg --armor --export "$MASTER_KEY_FINGERPRINT" 2>/dev/null \
+    | gpg --import 2>/dev/null
+
+  rm -f "$PUBLIC_KEY_FILE"
+  rm -rf "$TEMP_GNUPGHOME"
+  trap - EXIT
+fi
+
 # --- Register public key with GitHub ---
 
 CURRENT_GITHUB_USER=$(gh api user --jq .login 2>/dev/null)
