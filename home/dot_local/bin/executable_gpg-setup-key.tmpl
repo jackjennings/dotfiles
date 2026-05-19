@@ -4,90 +4,99 @@ set -e
 
 EMAIL="${1:?Usage: gpg-setup-key <email> [github-username]}"
 GITHUB_USERNAME="${2:-}"
-GPG_PUBLIC_KEY_FILEPATH=~/.config/.gpg/public-key-$EMAIL
-OP_ACCOUNT_ID="{{ .onepassword.account_id }}"
-DEVICE_UUID=$(system_profiler SPHardwareDataType | awk '/Hardware UUID/ { print $3 }')
+OP_ACCOUNT="{{ .onepassword.account_id }}"
+PUBLIC_KEY_FILE=~/.config/.gpg/public-key-$EMAIL
+MASTER_FINGERPRINT_FILE=~/.config/.gpg/master-fingerprint
 
 echo "Setting up GnuPG for $EMAIL..." >&2
 
-# Fix permissions on gnupg files to silence warnings
+# GPG requires strict permissions on ~/.gnupg or it emits warnings
 chown -R $(whoami) ~/.gnupg/
 find ~/.gnupg -type d -exec chmod 700 {} \;
 find ~/.gnupg -type f -exec chmod 600 {} \;
 
-KEY_ID=$(gpg --list-secret-keys --with-colons "$EMAIL" 2>/dev/null \
-  | awk -F: '$1 == "sec" { print $5 }' \
-  | head -1)
+# Check if a subkey is already present using the cached master fingerprint.
+# We look up by fingerprint rather than email because the master key UID may
+# not match the email this script was called with.
+SIGNING_KEY_ID=""
+if [[ -f "$MASTER_FINGERPRINT_FILE" ]]; then
+  CACHED_FINGERPRINT=$(cat "$MASTER_FINGERPRINT_FILE")
+  SIGNING_KEY_ID=$(gpg --list-secret-keys --with-colons "$CACHED_FINGERPRINT" 2>/dev/null \
+    | awk -F: '$1 == "sec" { print $5 }' | head -1)
+fi
 
-if [[ -z "$KEY_ID" ]]; then
-  eval $(op signin --account $OP_ACCOUNT_ID 2>/dev/null)
+if [[ -z "$SIGNING_KEY_ID" ]]; then
+  # --- Fetch master key from 1Password ---
 
-  if ! op document get "GPG Master Key" --account "$OP_ACCOUNT_ID" &>/dev/null; then
+  eval $(op signin --account $OP_ACCOUNT 2>/dev/null)
+
+  if ! op document get "GPG Master Key" --account "$OP_ACCOUNT" &>/dev/null; then
     echo "Error: GPG Master Key not found in 1Password." >&2
     echo "Run gpg-master-key first to set up the master key." >&2
     exit 1
   fi
 
-  MASTER_PASS=$(op read "op://Personal/GPG Master Key Passphrase/password" \
-      --account "$OP_ACCOUNT_ID")
+  MASTER_KEY_PASSPHRASE=$(op read "op://Personal/GPG Master Key Passphrase/password" \
+      --account "$OP_ACCOUNT")
 
-  echo "Creating GPG subkey for device $DEVICE_UUID..." >&2
+  echo "Creating GPG subkey..." >&2
 
-  GNUPGHOME_TEMP=$(mktemp -d)
-  trap "rm -rf '$GNUPGHOME_TEMP'" EXIT
+  # --- Set up isolated keyring ---
 
-  op document get "GPG Master Key" --account "$OP_ACCOUNT_ID" \
-    | GNUPGHOME="$GNUPGHOME_TEMP" gpg --batch --pinentry-mode loopback \
-        --passphrase "$MASTER_PASS" --import
+  # Use a temporary GNUPGHOME so the master secret key never touches ~/.gnupg.
+  # All master key operations happen here; only the subkey export leaves this directory.
+  TEMP_GNUPGHOME=$(mktemp -d)
+  trap "rm -rf '$TEMP_GNUPGHOME'" EXIT
 
-  MASTER_FP=$(GNUPGHOME="$GNUPGHOME_TEMP" gpg --list-secret-keys --with-colons \
-    | awk -F: '$1 == "sec" { print $5 }' | head -1)
+  op document get "GPG Master Key" --account "$OP_ACCOUNT" \
+    | GNUPGHOME="$TEMP_GNUPGHOME" gpg --batch --pinentry-mode loopback \
+        --passphrase "$MASTER_KEY_PASSPHRASE" --import 2>/dev/null
 
-  GNUPGHOME="$GNUPGHOME_TEMP" gpg --batch --pinentry-mode loopback \
-      --passphrase "$MASTER_PASS" \
-      --quick-add-key "$MASTER_FP" rsa4096 sign 0
+  MASTER_KEY_FINGERPRINT=$(GNUPGHOME="$TEMP_GNUPGHOME" gpg --list-secret-keys --with-colons \
+    | awk -F: '/^sec/{found=1} found && /^fpr/{print $10; exit}')
 
-  op item create --vault personal \
-      --title "GPG Subkey $DEVICE_UUID" \
-      --category Password \
-      --generate-password \
-      --account "$OP_ACCOUNT_ID"
+  # --- Generate signing subkey ---
 
-  DEVICE_PASS=$(op read "op://Personal/GPG Subkey $DEVICE_UUID/password" \
-      --account "$OP_ACCOUNT_ID")
+  GNUPGHOME="$TEMP_GNUPGHOME" gpg --batch --pinentry-mode loopback \
+      --passphrase "$MASTER_KEY_PASSPHRASE" \
+      --quick-add-key "$MASTER_KEY_FINGERPRINT" rsa4096 sign 0
 
-  GNUPGHOME="$GNUPGHOME_TEMP" gpg --batch --pinentry-mode loopback \
-      --passphrase "$MASTER_PASS" \
-      --new-passphrase "$DEVICE_PASS" \
-      --quick-change-passphrase "$MASTER_FP"
+  # Export subkeys only — --export-secret-subkeys omits the master secret key,
+  # so importing this into ~/.gnupg leaves the master unrecoverable from this machine.
+  EXPORTED_SUBKEYS=$(GNUPGHOME="$TEMP_GNUPGHOME" gpg --batch --pinentry-mode loopback \
+      --passphrase "$MASTER_KEY_PASSPHRASE" \
+      --export-secret-subkeys --armor "$MASTER_KEY_FINGERPRINT")
 
-  SUBKEY_EXPORT=$(GNUPGHOME="$GNUPGHOME_TEMP" gpg --batch --pinentry-mode loopback \
-      --passphrase "$DEVICE_PASS" \
-      --export-secret-subkeys --armor "$MASTER_FP")
+  # --- Install subkey into real keyring ---
 
-  rm -rf "$GNUPGHOME_TEMP"
+  rm -rf "$TEMP_GNUPGHOME"
   trap - EXIT
 
-  echo "$SUBKEY_EXPORT" | gpg --batch --pinentry-mode loopback \
-      --passphrase "$DEVICE_PASS" --import
+  echo "$EXPORTED_SUBKEYS" | gpg --batch --pinentry-mode loopback \
+      --passphrase "$MASTER_KEY_PASSPHRASE" --import 2>/dev/null
 
-  KEY_ID=$(gpg --list-secret-keys --with-colons "$EMAIL" 2>/dev/null \
-    | awk -F: '$1 == "sec" { print $5 }' \
-    | head -1)
+  SIGNING_KEY_ID=$(gpg --list-secret-keys --with-colons "$MASTER_KEY_FINGERPRINT" 2>/dev/null \
+    | awk -F: '$1 == "sec" { print $5 }' | head -1)
 
-  if [[ -z "$KEY_ID" ]]; then
+  if [[ -z "$SIGNING_KEY_ID" ]]; then
     echo "Error: GPG subkey setup failed." >&2
     exit 1
   fi
 
-  rm -f "$GPG_PUBLIC_KEY_FILEPATH"
-  mkdir -p $(dirname $GPG_PUBLIC_KEY_FILEPATH)
-  gpg --output $GPG_PUBLIC_KEY_FILEPATH --armor --export "$EMAIL"
+  # Cache fingerprint for future runs so the key-exists check doesn't depend on email UIDs
+  mkdir -p $(dirname "$MASTER_FINGERPRINT_FILE")
+  echo "$MASTER_KEY_FINGERPRINT" > "$MASTER_FINGERPRINT_FILE"
+
+  # --- Register public key with GitHub ---
+
+  rm -f "$PUBLIC_KEY_FILE"
+  mkdir -p $(dirname "$PUBLIC_KEY_FILE")
+  gpg --output "$PUBLIC_KEY_FILE" --armor --export "$MASTER_KEY_FINGERPRINT"
 
   echo "Adding GPG key to GitHub" >&2
 
-  CURRENT_GH_USER=$(gh api user --jq .login 2>/dev/null)
-  if [[ -n "$GITHUB_USERNAME" && "$GITHUB_USERNAME" != "$CURRENT_GH_USER" ]]; then
+  CURRENT_GITHUB_USER=$(gh api user --jq .login 2>/dev/null)
+  if [[ -n "$GITHUB_USERNAME" && "$GITHUB_USERNAME" != "$CURRENT_GITHUB_USER" ]]; then
     gh auth switch --user "$GITHUB_USERNAME"
     echo "  ... for user $GITHUB_USERNAME"
   fi
@@ -98,19 +107,21 @@ if [[ -z "$KEY_ID" ]]; then
     gh auth refresh --hostname github.com --scopes read:gpg_key,write:gpg_key
   fi
 
-  gh gpg-key add "$GPG_PUBLIC_KEY_FILEPATH"
+  gh gpg-key add "$PUBLIC_KEY_FILE"
 
-  if [[ -n "$GITHUB_USERNAME" && "$GITHUB_USERNAME" != "$CURRENT_GH_USER" ]]; then
-    gh auth switch --user "$CURRENT_GH_USER"
+  if [[ -n "$GITHUB_USERNAME" && "$GITHUB_USERNAME" != "$CURRENT_GITHUB_USER" ]]; then
+    gh auth switch --user "$CURRENT_GITHUB_USER"
   fi
 else
-  echo "GPG key for $EMAIL already exists, skipping key generation." >&2
+  echo "GPG key already exists, skipping." >&2
 fi
+
+# --- Write git signing config ---
 
 mkdir -p ~/.config/git
 cat > ~/.config/git/gpg-$EMAIL.gitconfig <<EOF
 [user]
-	signingkey = $KEY_ID
+	signingkey = $SIGNING_KEY_ID
 EOF
 
-echo "$KEY_ID"
+echo "$SIGNING_KEY_ID"

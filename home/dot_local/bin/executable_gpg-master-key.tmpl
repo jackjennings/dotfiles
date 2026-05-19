@@ -20,12 +20,12 @@ op item create --vault personal \
     --generate-password \
     --account "$OP_ACCOUNT" >/dev/null
 
-MASTER_PASS=$(op read "op://Personal/GPG Master Key Passphrase/password" \
+MASTER_KEY_PASSPHRASE=$(op read "op://Personal/GPG Master Key Passphrase/password" \
     --account "$OP_ACCOUNT")
 
-GNUPGHOME=$(mktemp -d)
-trap "rm -rf '$GNUPGHOME'" EXIT
-export GNUPGHOME
+TEMP_GNUPGHOME=$(mktemp -d)
+trap "rm -rf '$TEMP_GNUPGHOME'" EXIT
+export GNUPGHOME="$TEMP_GNUPGHOME"
 
 echo "Generating master key (cert-only)..." >&2
 
@@ -35,32 +35,32 @@ Key-Length: 4096
 Key-Usage: cert
 Name-Real: $NAME
 Name-Email: $EMAIL
-Passphrase: $MASTER_PASS
+Passphrase: $MASTER_KEY_PASSPHRASE
 Expire-Date: 0
 EOF
 
-MASTER_FP=$(gpg --list-secret-keys --with-colons "$EMAIL" \
-  | awk -F: '$1 == "sec" { print $5 }' | head -1)
+MASTER_KEY_FINGERPRINT=$(gpg --list-secret-keys --with-colons "$EMAIL" \
+  | awk -F: '/^sec/{found=1} found && /^fpr/{print $10; exit}')
 
-if [[ -z "$MASTER_FP" ]]; then
+if [[ -z "$MASTER_KEY_FINGERPRINT" ]]; then
   echo "Error: Key generation failed." >&2
   exit 1
 fi
 
 echo "Storing master key in 1Password..." >&2
 
-gpg --batch --pinentry-mode loopback --passphrase "$MASTER_PASS" \
-    --armor --export-secret-keys "$MASTER_FP" 2>/dev/null \
+gpg --batch --pinentry-mode loopback --passphrase "$MASTER_KEY_PASSPHRASE" \
+    --armor --export-secret-keys "$MASTER_KEY_FINGERPRINT" 2>/dev/null \
   | op document create - --vault personal --title "GPG Master Key" \
       --account "$OP_ACCOUNT" >/dev/null
 
 echo "Generating revocation certificate..." >&2
 
 printf "y\n0\n\ny\n" \
-  | gpg --yes --pinentry-mode loopback --passphrase "$MASTER_PASS" \
-        --command-fd 0 --gen-revoke "$MASTER_FP" 2>/dev/null \
+  | gpg --yes --pinentry-mode loopback --passphrase "$MASTER_KEY_PASSPHRASE" \
+        --command-fd 0 --gen-revoke "$MASTER_KEY_FINGERPRINT" 2>/dev/null \
   | op document create - --vault personal --title "GPG Master Key Revocation" \
       --account "$OP_ACCOUNT" >/dev/null
 
-echo "Done. Master key fingerprint: $MASTER_FP" >&2
+echo "Done. Master key fingerprint: $MASTER_KEY_FINGERPRINT" >&2
 echo "Run gpg-setup-key to provision this machine." >&2
