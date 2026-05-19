@@ -43,7 +43,9 @@ cask "1password-cli"
 cask "1password"
 cask "caffeine"
 cask "orbstack"
+{{- if .features.dropbox }}
 cask "dropbox"
+{{- end }}
 cask "drawbot"
 cask "figma"
 cask "firefox"
