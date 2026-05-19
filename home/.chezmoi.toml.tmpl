@@ -1,5 +1,12 @@
 {{- $email := promptStringOnce . "email" "email" -}}
 {{- $gpgEmail := promptStringOnce . "gpg.email" "gpg email" "j@ckjennin.gs" -}}
+{{- $isWork := promptBoolOnce . "work.enabled" "Is this a work computer" -}}
+{{- $workUsername := "" -}}
+{{- $workEmail := "" -}}
+{{- if $isWork -}}
+{{-   $workUsername = promptStringOnce . "work.username" "Work GitHub username" -}}
+{{-   $workEmail = promptStringOnce . "work.email" "Work email" -}}
+{{- end -}}
 [data]
     name = "Jack Jennings"
     email = "{{ $email }}"
@@ -18,6 +25,11 @@
 
 [data.onepassword]
     account_id = "EHM4KN6Z35BHJNTV3VFWRLZHUU"
+{{ if $isWork }}
+[data.work]
+    username = "{{ $workUsername }}"
+    email = "{{ $workEmail }}"
+{{ end -}}
 
 [diff]
     exclude = ["externals"]

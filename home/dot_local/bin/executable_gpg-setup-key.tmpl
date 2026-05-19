@@ -2,8 +2,8 @@
 
 set -e
 
-EMAIL="${1:?Usage: gpg-setup-key <email> [github-username]}"
-GITHUB_USERNAME="${2:-}"
+EMAIL="${1:?Usage: gpg-setup-key <email> <github-username>}"
+GITHUB_USERNAME="${2:?Usage: gpg-setup-key <email> <github-username>}"
 OP_ACCOUNT="{{ .onepassword.account_id }}"
 PUBLIC_KEY_FILE=~/.config/.gpg/public-key-$EMAIL
 MASTER_FINGERPRINT_FILE=~/.config/.gpg/master-fingerprint
@@ -94,7 +94,7 @@ fi
 # --- Register public key with GitHub ---
 
 CURRENT_GITHUB_USER=$(gh api user --jq .login 2>/dev/null)
-if [[ -n "$GITHUB_USERNAME" && "$GITHUB_USERNAME" != "$CURRENT_GITHUB_USER" ]]; then
+if [[ "$GITHUB_USERNAME" != "$CURRENT_GITHUB_USER" ]]; then
   gh auth switch --user "$GITHUB_USERNAME" >/dev/null 2>&1
 fi
 
@@ -116,7 +116,7 @@ if ! gh api user/gpg_keys --jq ".[].key_id" 2>/dev/null | grep -qi "^${KEY_ID}$"
   gh gpg-key add "$PUBLIC_KEY_FILE"
 fi
 
-if [[ -n "$GITHUB_USERNAME" && "$GITHUB_USERNAME" != "$CURRENT_GITHUB_USER" ]]; then
+if [[ "$GITHUB_USERNAME" != "$CURRENT_GITHUB_USER" ]]; then
   gh auth switch --user "$CURRENT_GITHUB_USER" >/dev/null 2>&1
 fi
 

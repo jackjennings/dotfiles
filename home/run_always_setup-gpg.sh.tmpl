@@ -2,10 +2,10 @@
 
 set -e
 
-gpg-setup-key "{{ .email }}" > /dev/null
-{{ if ne .email .github.email -}}
-gpg-setup-key "{{ .github.email }}" "{{ .github.username }}" > /dev/null
+{{ if .work -}}
+gpg-setup-key "{{ .work.email }}" "{{ .work.username }}" > /dev/null
 {{ end -}}
+gpg-setup-key "{{ .github.email }}" "{{ .github.username }}" > /dev/null
 
 mkdir -p ~/.config/git
 cat > ~/.config/git/gpg.gitconfig <<EOF
