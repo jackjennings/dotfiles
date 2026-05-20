@@ -12,4 +12,6 @@ Before editing any file in the home directory (`~` or `/Users/jack.jennings/`), 
 
 ## Creating pull requests
 
+Always create PRs as drafts using the `--draft` flag with `gh pr create`.
+
 Before creating a PR, check the local project for a pull request template (`.github/pull_request_template.md` or `PULL_REQUEST_TEMPLATE.md`). If one exists, use it as the body structure for the PR.
