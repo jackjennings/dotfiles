@@ -128,18 +128,39 @@ local function fetchAllRepos(accounts, callback)
   end
 end
 
+local iconColor = {red = 0xDD/255, green = 0x7B/255, blue = 0xDC/255, alpha = 1.0}
+
+local function coloredIcon(imageName)
+  -- Disable template so the image retains its native alpha (dark pixels on transparent bg),
+  -- then overlay target color with sourceAtop to tint only opaque pixels.
+  -- Canvas is 36×36 (the chooser's slot size) with the icon centered at 20×20,
+  -- so the rendered icon is smaller than the full slot.
+  local slotSize  = 36
+  local iconSize  = 20
+  local padding   = (slotSize - iconSize) / 2
+  local iconFrame = {x = padding, y = padding, w = iconSize, h = iconSize}
+
+  local img = hs.image.imageFromName(imageName)
+  img:template(false)
+
+  local canvas = hs.canvas.new({x=0, y=0, w=slotSize, h=slotSize})
+  canvas:appendElements(
+    { type = "image",     image = img, imageScaling = "scaleToFit", frame = iconFrame },
+    { type = "rectangle", action = "fill", fillColor = iconColor,
+      frame = iconFrame, compositeRule = "sourceAtop" }
+  )
+  local result = canvas:imageFromCanvas()
+  canvas:delete()
+  return result
+end
+
 local function repoToChoice(repo)
-  local icon
-  if repo.private then
-    icon = hs.image.imageFromName("NSLockLockedTemplate")
-  else
-    icon = hs.image.imageFromName("NSLockUnlockedTemplate")
-  end
+  local imageName = repo.private and "NSLockLockedTemplate" or "NSLockUnlockedTemplate"
   return {
-    text = repo.text,
+    text    = repo.text,
     subText = repo.subText,
-    url = repo.url,
-    image = icon,
+    url     = repo.url,
+    image   = coloredIcon(imageName),
   }
 end
 
@@ -216,6 +237,7 @@ function obj:init()
     return sortedChoices(self._repos, query)
   end)
   self.chooser:placeholderText("Search GitHub repos…")
+  self.chooser:fgColor({red = 0xDD/255, green = 0x7B/255, blue = 0xDC/255, alpha = 1.0})
   self.chooser:width(60)
   self.chooser:rows(12)
 
