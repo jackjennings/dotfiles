@@ -44,6 +44,11 @@ Scripts are run in lexicographic order — `run_onchange_000_brew-bundle.sh.tmpl
 
 **Package management** flows through `Brewfile.tmpl` → `run_onchange_000_brew-bundle.sh.tmpl`. Editing `Brewfile.tmpl` and running `chezmoi apply` installs/removes packages via `brew bundle`.
 
+**Hammerspoon** config lives in `dot_hammerspoon/`. After applying changes, reload the running config:
+```sh
+hs -c "hs.reload()"
+```
+
 **Agent config:**
 - `private_dot_claude/` — Claude Code settings
 - `dot_pi/agent/` — Pi coding agent settings and packages; `run_onchange_pi-install.sh.tmpl` runs `pi install` when `settings.json` changes

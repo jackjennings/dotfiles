@@ -1,3 +1,5 @@
+require("hs.ipc")
+
 hs.loadSpoon("HyperKey")
 spoon.HyperKey:init():start()
 
