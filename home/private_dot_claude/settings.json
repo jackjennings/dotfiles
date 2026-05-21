@@ -15,11 +15,24 @@
       "Bash(git fetch:*)",
       "Bash(git stash list:*)",
       "Bash(npm test:*)",
-      "Bash(jq:*)"
+      "Bash(jq:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:arxiv.org)",
+      "Read(/Users/jack.jennings/.claude/projects/*)"
     ]
   },
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true,
-    "agent-browser@agent-browser": true
+    "agent-browser@agent-browser": true,
+    "andrej-karpathy-skills@karpathy-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "karpathy-skills": {
+      "source": {
+        "source": "github",
+        "repo": "forrestchang/andrej-karpathy-skills",
+        "path": ".claude-plugin/marketplace.json"
+      }
+    }
   }
 }
