@@ -3,6 +3,15 @@
     "commit": "",
     "pr": ""
   },
+  "cleanupPeriodDays": 14,
+  "alwaysThinkingEnabled": true,
+  "spinnerTipsEnabled": false,
+  "env": {
+    "ENABLE_LSP_TOOL": "1",
+    "USE_BUILTIN_RIPGREP": "1",
+    "DISABLE_TELEMETRY": "1",
+    "DISABLE_ERROR_REPORTING": "1"
+  },
   "permissions": {
     "allow": [
       "Bash(git status:*)",
@@ -23,16 +32,6 @@
   },
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true,
-    "agent-browser@agent-browser": true,
-    "andrej-karpathy-skills@karpathy-skills": true
-  },
-  "extraKnownMarketplaces": {
-    "karpathy-skills": {
-      "source": {
-        "source": "github",
-        "repo": "forrestchang/andrej-karpathy-skills",
-        "path": ".claude-plugin/marketplace.json"
-      }
-    }
+    "agent-browser@agent-browser": true
   }
 }
