@@ -10,6 +10,10 @@ Always use `git start` (not `git checkout -b` or `git switch -c`) when creating 
 
 Before editing any file in the home directory (`~` or `/Users/jack.jennings/`), run `chezmoi source-path <file>` to check if it is managed by chezmoi. If a source path is returned, edit the file there instead of in the home directory. After editing, commit the change in `~/.local/share/chezmoi/` rather than trying to commit the home directory file directly.
 
+## Creating Jira tickets
+
+When passing `description` or other multiline fields to Jira MCP tools, always use the `contentFormat: "markdown"` parameter and pass the content as a plain string with real newlines — not escaped `\n` sequences or escaped backticks. Escaped characters will appear literally in Jira.
+
 ## Creating pull requests
 
 Always create PRs as drafts using the `--draft` flag with `gh pr create`.
