@@ -27,11 +27,23 @@
       "Bash(jq:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:arxiv.org)",
-      "Read(/Users/jack.jennings/.claude/projects/*)"
+      "Read(/Users/jack.jennings/.claude/projects/*)",
+      "mcp__plugin_slack_slack__slack_read_channel",
+      "mcp__plugin_slack_slack__slack_read_thread",
+      "mcp__plugin_slack_slack__slack_read_canvas",
+      "mcp__plugin_slack_slack__slack_read_file",
+      "mcp__plugin_slack_slack__slack_read_user_profile",
+      "mcp__plugin_slack_slack__slack_search_public",
+      "mcp__plugin_slack_slack__slack_search_public_and_private",
+      "mcp__plugin_slack_slack__slack_search_channels",
+      "mcp__plugin_slack_slack__slack_search_users",
+      "mcp__plugin_slack_slack__slack_list_channel_members",
+      "mcp__plugin_slack_slack__slack_get_reactions"
     ]
   },
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true,
-    "agent-browser@agent-browser": true
+    "agent-browser@agent-browser": true,
+    "slack@claude-plugins-official": true
   }
 }
