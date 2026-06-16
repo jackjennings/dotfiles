@@ -11,6 +11,9 @@
 ["{{ .code_directory }}/{{ .github.username }}/invoices"]
     type = "git-repo"
     url = "git@github.com:jackjennings/invoices.git"
+["{{ .code_directory }}/{{ .github.username }}/lazyboy"]
+    type = "git-repo"
+    url = "git@github.com:jackjennings/lazyboy.git"
 [".oh-my-zsh"]
     type = "archive"
     url = "https://github.com/ohmyzsh/ohmyzsh/archive/master.tar.gz"
