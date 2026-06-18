@@ -3,6 +3,9 @@ tap "hellboxpy/hell"
 tap "oven-sh/bun"
 
 brew "agent-browser"
+{{- if ge (output "sw_vers" "-productVersion" | trim | splitList "." | first | atoi) 26 }}
+brew "apfel"
+{{- end }}
 brew "atlassian/acli/acli"
 {{- if .features.asdf }}
 brew "asdf"
