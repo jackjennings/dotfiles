@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+{{ if ne .email .github.email -}}
+# Resolve by the repo's origin remote first so this also works for lazyboy
+# worktrees (~/.lazyboy/worktrees/...), which don't live under
+# ~/{{ .code_directory }}/{{ .work.org }}. Matches the org as a path segment
+# so it works for both SSH (any host alias) and HTTPS remote URLs.
+remote_url="$(git remote get-url origin 2>/dev/null)"
+
+case "$remote_url" in
+    *:{{ .work.org }}/*|*/{{ .work.org }}/*)
+        echo "{{ .work.username }}"
+        exit 0
+        ;;
+esac
+
+if [[ -z "$remote_url" ]]; then
+    case "$PWD" in
+        "$HOME/{{ .code_directory }}/{{ .work.org }}"|"$HOME/{{ .code_directory }}/{{ .work.org }}"/*)
+            echo "{{ .work.username }}"
+            exit 0
+            ;;
+    esac
+fi
+
+{{ end -}}
+echo "{{ .github.username }}"

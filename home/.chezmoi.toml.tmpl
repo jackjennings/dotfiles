@@ -3,9 +3,11 @@
 {{- $isWork := promptBoolOnce . "work.enabled" "Is this a work computer" -}}
 {{- $workUsername := "" -}}
 {{- $workEmail := "" -}}
+{{- $workOrg := "" -}}
 {{- if $isWork -}}
 {{-   $workUsername = promptStringOnce . "work.username" "Work GitHub username" -}}
 {{-   $workEmail = promptStringOnce . "work.email" "Work email" -}}
+{{-   $workOrg = promptStringOnce . "work.org" "Work GitHub org" -}}
 {{- end -}}
 [data]
     name = "Jack Jennings"
@@ -30,6 +32,7 @@
 [data.work]
     username = "{{ $workUsername }}"
     email = "{{ $workEmail }}"
+    org = "{{ $workOrg }}"
 {{ end -}}
 
 [diff]
