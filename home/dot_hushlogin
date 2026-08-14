@@ -1,0 +1,5 @@
+The presence of this file silences login-time output: the copyright notice,
+last-login time, /etc/motd, and the "You have mail." notice for /var/mail/$USER.
+
+Read by login(1) and sshd(8), both of which only check that the file exists.
+These contents are never parsed; there is no format.
