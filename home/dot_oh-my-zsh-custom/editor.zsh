@@ -1,7 +1,7 @@
 EDITOR="nvim"
 
 alias e="$EDITOR ."
-alias c="code ."
+alias c="zed ."
 alias ezr="$EDITOR ~/.zshrc"
 alias ezo="$EDITOR ~/.oh-my-zsh"
 alias ezc="$EDITOR ~/.oh-my-zsh-custom"
