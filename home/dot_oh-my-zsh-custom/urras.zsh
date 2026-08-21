@@ -1,1 +1,1 @@
-export PATH="$HOME/code/jackjennings/lazyboy/bin:$PATH"
+export PATH="$HOME/code/jackjennings/urras/bin:$PATH"
