@@ -60,5 +60,6 @@
         "path": ".claude-plugin/marketplace.json"
       }
     }
-  }
+  },
+  "theme": "dark-ansi"
 }
