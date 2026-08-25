@@ -23,6 +23,10 @@ Use direct, technical language. Avoid:
 
 Before editing any file in the home directory (`~` or `/Users/jack.jennings/`), run `chezmoi source-path <file>` to check if it is managed by chezmoi. If a source path is returned, edit the file there instead of in the home directory. After editing, commit the change in `~/.local/share/chezmoi/` rather than trying to commit the home directory file directly.
 
+## Superpowers workflow
+
+When finishing a development branch (via `superpowers:finishing-a-development-branch`), remove any spec and plan docs committed to the branch history before merging. These files live under `docs/superpowers/` and should not appear in the final commit history. Use `git reset --hard <base>` + `git merge <feature-tip>` to re-merge without the doc commits, or `git rebase --onto` to drop them.
+
 ## Creating pull requests
 
 Always create PRs as drafts using the `--draft` flag with `gh pr create`.

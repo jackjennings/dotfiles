@@ -1,13 +1,13 @@
-tap "atlassian/acli"
-tap "datadog-labs/pack"
-tap "hellboxpy/hell"
-tap "oven-sh/bun"
+tap "atlassian/acli", trusted: true
+tap "datadog-labs/pack", trusted: true
+tap "hellboxpy/hell", trusted: true
+tap "oven-sh/bun", trusted: true
 
 brew "agent-browser"
 {{- if ge (output "sw_vers" "-productVersion" | trim | splitList "." | first | atoi) 26 }}
 brew "apfel"
 {{- end }}
-brew "atlassian/acli/acli"
+brew "atlassian/acli/acli", trusted: true
 {{- if .features.asdf }}
 brew "asdf"
 {{- end }}
@@ -27,7 +27,7 @@ brew "git"
 brew "git-absorb"
 brew "gnupg"
 brew "harlequin"
-brew "hellboxpy/hell/hell"
+brew "hellboxpy/hell/hell", trusted: true
 brew "imagemagick"
 brew "invoice"
 brew "jq"
