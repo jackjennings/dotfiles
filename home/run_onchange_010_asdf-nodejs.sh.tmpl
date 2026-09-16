@@ -1,0 +1,7 @@
+#!/bin/sh
+{{ if .features.asdf -}}
+# Install Node.js LTS 24.14.1 as global asdf version
+asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git 2>/dev/null || true
+asdf install nodejs 24.14.1
+asdf set --home nodejs 24.14.1
+{{ end -}}

@@ -2,7 +2,7 @@
 
 set -e
 
-{{ if .work -}}
+{{ if hasKey . "work" -}}
 gpg-setup-key "{{ .work.email }}" "{{ .work.username }}" > /dev/null
 {{ end -}}
 gpg-setup-key "{{ .github.email }}" "{{ .github.username }}" > /dev/null
