@@ -23,4 +23,7 @@ cat > ~/.config/git/gpg.gitconfig <<EOF
 
 [includeIf "gitdir:~/.local/share/chezmoi/"]
 	path = ~/.config/git/gpg-{{ .github.email }}.gitconfig
+
+[includeIf "gitdir:~/.urras/worktrees/**/{{ .github.username }}/*/"]
+	path = ~/.config/git/gpg-{{ .github.email }}.gitconfig
 EOF

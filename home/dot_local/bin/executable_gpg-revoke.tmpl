@@ -6,7 +6,7 @@ OP_ACCOUNT="{{ .onepassword.account_id }}"
 
 echo "Revoking GPG subkey..." >&2
 
-MASTER_KEY_PASSPHRASE=$(op read "op://Personal/GPG Master Key Passphrase/password" \
+MASTER_KEY_PASSPHRASE=$(op read "op://Automation/GPG Master Key Passphrase/password" \
     --account "$OP_ACCOUNT")
 
 TEMP_GNUPGHOME=$(mktemp -d)
