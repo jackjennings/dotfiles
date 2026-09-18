@@ -16,7 +16,9 @@ agent-browser wait --load networkidle
 agent-browser wait 3000
 
 # 2. Start recording, THEN set resolution — record start opens a fresh
-#    browser context, so viewport must be set after, not before.
+#    browser context, so viewport must be set after, not before. This is
+#    REQUIRED: the default headless viewport is a non-standard 1280x577
+#    and reads as a squished recording if this line is skipped.
 agent-browser record start "$OUT"
 agent-browser set viewport 1920 1080 2   # 1080p @2x retina; adjust as needed
 agent-browser wait 800

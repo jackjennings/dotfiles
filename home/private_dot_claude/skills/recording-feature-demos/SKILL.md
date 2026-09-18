@@ -36,10 +36,14 @@ one Bash call.
    file, etc.) rather than recording whatever loaded by default.
 3. **Write the plan as a shell script** (e.g. `/tmp/<feature>-recording.sh`)
    containing every `agent-browser` command in order — see
-   `record-plan.sh.template`. Chain values with shell, not reasoning: pull
-   a bounding box into a var with `get box --json | jq`, feed it to the
-   next `mouse move`, instead of reading CLI output yourself and deciding
-   the next command.
+   `record-plan.sh.template`. The script MUST call `record start`
+   immediately followed by `agent-browser set viewport 1920 1080 2` (or
+   similar) before any interaction — agent-browser's default headless
+   viewport is a non-standard 1280×577, which produces a
+   squished/wrong-aspect-ratio recording if this is skipped. Chain values
+   with shell, not reasoning: pull a bounding box into a var with
+   `get box --json | jq`, feed it to the next `mouse move`, instead of
+   reading CLI output yourself and deciding the next command.
 4. **Execute the script in one Bash call.** No snapshot/click/wait tool
    calls interleaved with your own reasoning during capture — the script
    already resolved all of that.
@@ -54,7 +58,7 @@ one Bash call.
 | `get box --json` nests under `.data` (`{"success","data":{"x",...},"error"}`) | Use `.data.x`, not `.x` — a bare `.x` silently returns `null` and breaks downstream arithmetic |
 | Fixed `wait <ms>` guesses wrong under load | Prefer `wait "<selector>"` (condition-based) before reading that element's box/text |
 | `@eN` refs from the investigation phase | Don't hardcode them into the script — use `find role/text/testid` or a CSS attribute selector instead |
-| Low-res/blurry capture | `agent-browser set viewport 1920 1080 2` (third arg = deviceScaleFactor; `2` = retina-sharp) |
+| Low-res/blurry/squished capture | Step 3 requires `set viewport` right after `record start` — don't skip it. `1920 1080 2` (third arg = deviceScaleFactor; `2` = retina-sharp) |
 | App behind a staging/VPN-gated backend won't load (blank page, DNS errors) | Check VPN/network before assuming the app or your script is broken |
 
 ## Template
