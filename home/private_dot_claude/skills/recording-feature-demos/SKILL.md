@@ -26,6 +26,14 @@ one Bash call.
    capture script — they die the instant the page changes, and a capture
    script changes the page many times with no snapshot in between to
    refresh them.
+
+   **The page you land on is usually not the feature.** Opening an app's
+   default/dev URL typically lands on a generic default view, not the
+   feature you're asked to record. Screenshot and confirm the actual
+   target UI is visible — by name, not just "a page loaded" — before
+   writing the plan. If it's behind a feature flag, find and use this
+   project's mechanism for forcing it locally (env config, local override
+   file, etc.) rather than recording whatever loaded by default.
 3. **Write the plan as a shell script** (e.g. `/tmp/<feature>-recording.sh`)
    containing every `agent-browser` command in order — see
    `record-plan.sh.template`. Chain values with shell, not reasoning: pull
