@@ -7,7 +7,7 @@
 set -euo pipefail
 
 URL="<paste the exact URL found during investigation>"
-OUT="/tmp/<feature>-demo.webm"
+OUT="/tmp/<feature>-demo.mp4"   # .mp4 extension -> agent-browser outputs real h264 MP4
 
 # 1. Load the page and let it fully settle (cold JIT/bundle compile can
 #    be slow on first load — don't start recording until this is done).
