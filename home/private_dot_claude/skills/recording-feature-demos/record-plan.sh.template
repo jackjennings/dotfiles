@@ -1,0 +1,53 @@
+#!/bin/bash
+# Recording plan template — fill in the placeholders found during the
+# interactive investigation phase, then run this whole script in ONE
+# Bash call. No agent reasoning between steps: every branch/value this
+# script needs is computed by shell (jq, arithmetic), not by re-invoking
+# the CLI and reading the result yourself.
+set -euo pipefail
+
+URL="<paste the exact URL found during investigation>"
+OUT="/tmp/<feature>-demo.mp4"   # .mp4 extension -> agent-browser outputs real h264 MP4
+
+# 1. Load the page and let it fully settle (cold JIT/bundle compile can
+#    be slow on first load — don't start recording until this is done).
+agent-browser open "$URL"
+agent-browser wait --load networkidle
+agent-browser wait 3000
+
+# 2. Start recording, THEN set resolution — record start opens a fresh
+#    browser context, so viewport must be set after, not before. This is
+#    REQUIRED: the default headless viewport is a non-standard 1280x577
+#    and reads as a squished recording if this line is skipped.
+agent-browser record start "$OUT"
+agent-browser set viewport 1920 1080 2   # 1080p @2x retina; adjust as needed
+agent-browser wait 800
+
+# 3. Perform the planned interactions using STABLE locators (aria-label /
+#    data-test-id / find role|text|testid) — never @eN refs discovered
+#    during investigation, they're already stale by the time this runs.
+agent-browser find role button click --name "<button name>"
+
+# Condition-based wait: wait for what the NEXT step depends on to exist,
+# rather than guessing a sleep duration.
+agent-browser wait "<selector for element that appears>"
+agent-browser wait 500
+
+# Example: drag a resize handle. Read its live bounding box into a shell
+# var each time — note --json responses nest under .data, not top-level.
+HANDLE_X=$(agent-browser get box "<handle selector>" --json | jq '.data.x + .data.width/2')
+agent-browser mouse move "$HANDLE_X" 400
+agent-browser mouse down left
+agent-browser mouse move "$(echo "$HANDLE_X - 250" | bc)" 400
+agent-browser wait 400
+agent-browser mouse up left
+agent-browser wait 1000
+
+# ... add further planned steps here, same pattern ...
+
+# 4. Stop and hand back the artifact.
+agent-browser record stop
+agent-browser close
+
+ls -la "$OUT"
+file "$OUT"
