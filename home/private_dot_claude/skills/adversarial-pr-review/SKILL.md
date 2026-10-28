@@ -1,6 +1,6 @@
 ---
 name: adversarial-pr-review
-description: Interactive, adversarial, ticket-aware review of a GitHub PR, walked through finding by finding with the user. Use when pointed at any PR and asked for an "adversarial review" or a "go deep" review, or to review a PR against its ticket, epic, and design doc. Differs from the built-in code-review skill - it reads ticket/epic/design/producer-consumer context, verifies every candidate finding with a refutation subagent before presenting, then discusses findings one at a time and acts only on the user's decisions.
+description: Interactive, adversarial, ticket-aware review of a GitHub PR, walked through finding by finding with the user. Use when pointed at any PR and asked for an "adversarial review" or a "go deep" review, or to review a PR against its ticket, epic, and design doc. Differs from the built-in code-review skill - it reads ticket/epic/design/producer-consumer context, verifies every candidate finding with a refutation subagent before presenting, then discusses findings one at a time and acts only on the user's decisions. Hard gates: no finding is presented without a subagent verdict, and findings are presented one per message, never as a list.
 ---
 
 # Adversarial PR review
@@ -13,6 +13,21 @@ Typical request: "Perform an adversarial review of <PR url>. Look at the associa
 
 ## Rules
 
+HARD GATES (not negotiable):
+- No candidate is presented without a verdict from its own refutation subagent (Phase 2). Your own reading does not count, however obvious the finding looks. About 40% of candidates were refuted on investigation.
+- Never present more than one finding with detail per message. No findings list, no previews of later findings. After each finding, stop and wait for the user (Phase 4).
+
+Red flags that mean you are about to violate a gate:
+
+| Thought | Reality |
+|---------|---------|
+| "This one is obviously real" | Obvious ones were refuted too. Spawn the agent. |
+| "I already read the code" | You are anchored on your claim. The agent tries to refute it. |
+| "Too many agents" | One per candidate is the requirement. |
+| "A short list is more efficient" | The user interrogates one finding at a time. Present one. |
+| "I'll show the rest so they have context" | Do not mention later findings until the user advances. |
+
+Other rules:
 - Only report issues introduced by the PR. Pre-existing quirks the PR moves or consolidates are dropped (at most one cleanup-idea line).
 - Never claim "verified" unless data was read. State what was not verified.
 - Do not post, edit, or file anything until the user says so (Phase 5).
@@ -54,11 +69,15 @@ Repo conventions:
   - No sibling handles it gracefully: say so; usually downgrades the finding.
   - A sibling does: name the file to copy.
 
+GATE: Do not present any candidate to the user yet. Go to Phase 2.
+
 ## Phase 2: Verify each candidate with its own subagent BEFORE presenting
 
 LESSON: about 40% of initial findings fell apart on investigation. Examples: a "duplicate" was intentional per the design doc; a "leftover hand-rolled helper" was a separate deprecated path; a "perf problem" was negligible because rendering was a single text node; a "content vanishes" mismatch did not exist because the producer persisted the same text. Do not present unverified candidates.
 
-Spawn one Agent subagent per candidate, all in parallel in a single message. Subagents are read-only. Each prompt must be self-contained: repo, PR number, local ref (`pr-<n>`), the claim, file:line, and where the ticket/design/producer sources are. Ask it to try to REFUTE the claim.
+First write a verification ledger in chat: `candidate | agent | verdict`, one row per candidate, verdicts blank.
+
+Then spawn one Agent subagent per candidate, ALL in parallel in a single message (N candidates = N Agent calls in one block). Subagents are read-only. Self-verification does not substitute for a subagent, even for a candidate that looks certain. Each prompt must be self-contained: repo, PR number, local ref (`pr-<n>`), the claim, file:line, and where the ticket/design/producer sources are. Ask it to try to REFUTE the claim.
 
 Prompt template:
 
@@ -85,18 +104,17 @@ After results:
 - Keep REFUTED ones for a one-line "checked and fine" list.
 - If a refutation changes the story elsewhere, correct the earlier claims explicitly and say so.
 
-## Phase 3: Summary
+GATE: Do not start Phase 3 until every ledger row has a verdict from a subagent. A blank row means stop and spawn it.
 
-Present a short ranked list, surviving findings only, most severe first. One line each: location and consequence. Group as:
-- Bugs
-- Ticket/contract deviations
-- Duplication / idiom
+## Phase 3: Handoff (no list)
 
-Then: "Checked and fine" (one line each) and open questions needing a human decision. Post nothing, edit nothing.
+Output one line only: "N candidates, M confirmed/weakened, K refuted." Optionally add numbered titles (no mechanism, no consequence). Rank survivors most severe first (bugs, then ticket/contract deviations, then duplication/idiom) and go straight to Finding 1 of M in the same message.
+
+Do not present the full summary, mechanisms, or the "checked and fine" list here; those go in Phase 6. Create one task per surviving finding (TaskCreate) to track the walk-through.
 
 ## Phase 4: Walk through findings one at a time
 
-Present "Finding N of M" with:
+Each message contains exactly one finding. Present "Finding N of M" with:
 - Location
 - How it works
 - When it fires and when it does not
@@ -105,10 +123,10 @@ Present "Finding N of M" with:
 - Caveats and what was not verified
 - Recommended action
 
-Then STOP. Let the user interrogate.
+End with a plain-chat prompt: "Comment / ticket / drop / question?" Then STOP. Do not mention or preview later findings. Let the user interrogate.
 - Answer follow-ups with fresh evidence from code. "How do other modules handle this?" means go read them.
 - Do not use AskUserQuestion for the per-finding decision. The user wants plain chat.
-- Move to the next finding only when the user says to.
+- Move to the next finding only when the user says to; mark the task complete then.
 - If investigation shows a finding is weaker than claimed, say so plainly and revise the recommendation. Do not defend it.
 - If the user says skip or ignore, drop it without argument and move on.
 
@@ -144,7 +162,7 @@ Stacked / follow-up PRs:
 
 ## Phase 6: Close
 
-End with a compact table:
+Present the full summary here for the first time: the table below, then "Checked and fine" (one line per refuted candidate) and open questions needing a human decision. End with a compact table:
 
 | # | Finding (one line) | Outcome |
 |---|--------------------|---------|
