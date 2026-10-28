@@ -75,7 +75,7 @@ GATE: Do not present any candidate to the user yet. Go to Phase 2.
 
 LESSON: about 40% of initial findings fell apart on investigation. Examples: a "duplicate" was intentional per the design doc; a "leftover hand-rolled helper" was a separate deprecated path; a "perf problem" was negligible because rendering was a single text node; a "content vanishes" mismatch did not exist because the producer persisted the same text. Do not present unverified candidates.
 
-First write a verification ledger in chat: `candidate | agent | verdict`, one row per candidate, verdicts blank.
+First write a verification ledger as text in the same turn, BEFORE the Agent calls: `candidate | agent | verdict`, one row per candidate, verdicts blank.
 
 Then spawn one Agent subagent per candidate, ALL in parallel in a single message (N candidates = N Agent calls in one block). Subagents are read-only. Self-verification does not substitute for a subagent, even for a candidate that looks certain. Each prompt must be self-contained: repo, PR number, local ref (`pr-<n>`), the claim, file:line, and where the ticket/design/producer sources are. Ask it to try to REFUTE the claim.
 
@@ -110,7 +110,7 @@ GATE: Do not start Phase 3 until every ledger row has a verdict from a subagent.
 
 ## Phase 3: Handoff (no list)
 
-Output one line only: "N candidates, M confirmed/weakened, K refuted." Optionally add numbered titles (no mechanism, no consequence). Do not repeat the ledger; the count line replaces it.
+Output one line only: "N candidates, M confirmed/weakened, K refuted." No finding titles or list. Do not repeat the ledger; the count line replaces it.
 
 Rank survivors by the subagent's severity: blocking first, then non-blocking, then nit. Within a severity, CONFIRMED above WEAKENED, then bugs, ticket/contract deviations, duplication/idiom. Go straight to Finding 1 of M in the same message.
 
