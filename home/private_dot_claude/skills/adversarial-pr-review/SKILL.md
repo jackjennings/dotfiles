@@ -104,13 +104,17 @@ After results:
 - Keep REFUTED ones for a one-line "checked and fine" list.
 - If a refutation changes the story elsewhere, correct the earlier claims explicitly and say so.
 
+Wait for every subagent to report before ending your turn or writing anything user-facing.
+
 GATE: Do not start Phase 3 until every ledger row has a verdict from a subagent. A blank row means stop and spawn it.
 
 ## Phase 3: Handoff (no list)
 
-Output one line only: "N candidates, M confirmed/weakened, K refuted." Optionally add numbered titles (no mechanism, no consequence). Rank survivors most severe first (bugs, then ticket/contract deviations, then duplication/idiom) and go straight to Finding 1 of M in the same message.
+Output one line only: "N candidates, M confirmed/weakened, K refuted." Optionally add numbered titles (no mechanism, no consequence). Do not repeat the ledger; the count line replaces it.
 
-Do not present the full summary, mechanisms, or the "checked and fine" list here; those go in Phase 6. Create one task per surviving finding (TaskCreate) to track the walk-through.
+Rank survivors by the subagent's severity: blocking first, then non-blocking, then nit. Within a severity, CONFIRMED above WEAKENED, then bugs, ticket/contract deviations, duplication/idiom. Go straight to Finding 1 of M in the same message.
+
+Do not present the full summary, mechanisms, or the "checked and fine" list here; those go in Phase 6. Track the walk-through with one task per surviving finding if a task tool is available (e.g. TaskCreate); otherwise keep the numbered list as the tracker.
 
 ## Phase 4: Walk through findings one at a time
 
@@ -126,7 +130,7 @@ Each message contains exactly one finding. Present "Finding N of M" with:
 End with a plain-chat prompt: "Comment / ticket / drop / question?" Then STOP. Do not mention or preview later findings. Let the user interrogate.
 - Answer follow-ups with fresh evidence from code. "How do other modules handle this?" means go read them.
 - Do not use AskUserQuestion for the per-finding decision. The user wants plain chat.
-- Move to the next finding only when the user says to; mark the task complete then.
+- Move to the next finding only when the user says to; mark the finding done in the tracker then.
 - If investigation shows a finding is weaker than claimed, say so plainly and revise the recommendation. Do not defend it.
 - If the user says skip or ignore, drop it without argument and move on.
 
