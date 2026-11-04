@@ -1,0 +1,57 @@
+#!/bin/bash
+# Recording plan template — fill in the placeholders found during the
+# interactive investigation phase, then run this whole script in ONE
+# Bash call. No agent reasoning between steps: every branch/value this
+# script needs is computed by shell (jq, arithmetic), not by re-invoking
+# the CLI and reading the result yourself.
+set -euo pipefail
+
+URL="<paste the exact URL found during investigation>"
+OUT="/tmp/<feature>-demo.mp4"   # .mp4 extension -> agent-browser outputs real h264 MP4
+
+# 1. Set resolution FIRST. record start records the already-open page as-is
+#    and fixes the frame size to the viewport at that moment; setting it
+#    afterward leaves the default 1280x577 frame and squishes the video.
+#    Output size is viewport x scale (1440x900 @2 -> 2880x1800).
+agent-browser set viewport 1440 900 2
+
+# 2. Load the page and let it fully settle (cold JIT/bundle compile can
+#    be slow on first load — don't start recording until this is done).
+#    Do any setup navigation here too, so the take starts on the feature.
+agent-browser open "$URL"
+agent-browser wait --load networkidle
+agent-browser wait 3000
+
+# 3. Start recording.
+agent-browser record start "$OUT"
+agent-browser wait 800
+
+# 4. Perform the planned interactions using STABLE locators (aria-label /
+#    data-test-id / find role|text|testid) — never @eN refs discovered
+#    during investigation, they're already stale by the time this runs.
+agent-browser find role button click --name "<button name>"
+
+# Condition-based wait: wait for what the NEXT step depends on to exist,
+# rather than guessing a sleep duration.
+agent-browser wait "<selector for element that appears>"
+agent-browser wait 500
+
+# Example: drag a resize handle. Read its live bounding box into a shell
+# var each time — note --json responses nest under .data, not top-level.
+HANDLE_X=$(agent-browser get box "<handle selector>" --json | jq '.data.x + .data.width/2')
+agent-browser mouse move "$HANDLE_X" 400
+agent-browser mouse down left
+agent-browser mouse move "$(echo "$HANDLE_X - 250" | bc)" 400
+agent-browser wait 400
+agent-browser mouse up left
+agent-browser wait 1000
+
+# ... add further planned steps here, same pattern ...
+
+# 5. Stop and hand back the artifact.
+agent-browser record stop
+agent-browser close
+
+ls -la "$OUT"
+file "$OUT"
+ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "$OUT"   # aspect must match the viewport
